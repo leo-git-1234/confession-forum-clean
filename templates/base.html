@@ -49,9 +49,43 @@
         .confession .username { color: #007bff; font-weight: 600; }
         .confession input[type="text"] { width: auto; display: inline-block; }
         .comment-form input[type="text"] { width: 70%; display: inline-block; }
+        /* Banner Styles */
+        .banner-bg {
+            width: 100%;
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            padding: 0;
+            margin: 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 70px;
+        }
+        .banner-title {
+            color: #fff;
+            font-size: 2.1em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 0 14px 0;
+        }
+        .banner-icon {
+            font-size: 1.5em;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.10));
+        }
     </style>
 </head>
 <body>
+    <div class="banner-bg">
+        <div class="banner-title">
+            <span class="banner-icon">🕵️‍♂️</span>
+            Anonymous Confession Website
+        </div>
+    </div>
+    {% if not hide_navbar %}
     <div class="navbar">
         <div>
             <a href="{{ url_for('confessions_page') }}">All Confessions</a>
@@ -65,6 +99,7 @@
             {% endif %}
         </div>
     </div>
+    {% endif %}
     <div class="container">
         {% block content %}{% endblock %}
     </div>

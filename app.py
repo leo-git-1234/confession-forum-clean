@@ -57,7 +57,7 @@ def index():
         else:
             session['user'] = {'username': username}
             return redirect(url_for('dashboard'))
-    return render_template('login.html', error=error)
+    return render_template('login.html', error=error, hide_navbar=True)
 
 # Signup page
 @app.route('/signup', methods=['GET', 'POST'])
@@ -78,7 +78,7 @@ def signup():
             save_users(users)
             flash('Account created! Please log in.')
             return redirect(url_for('index'))
-    return render_template('signup.html', error=error)
+    return render_template('signup.html', error=error, hide_navbar=True)
 
 @app.route('/dashboard')
 def dashboard():
