@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>All Confessions</h2>
+    {% for confession in confessions|reverse %}
+        <div class="confession">
+            <div class="username"><b>{{ confession.username }}</b></div>
+            <div><b>Title:</b> {{ confession.title|e }}</div>
+            <div><b>Description:</b> {{ confession.description|e }}</div>
+            <div>{{ confession.text|e }}</div>
+            {% if confession.files %}
+                <div>Files:
+                    {% for file in confession.files %}
+                        <a class="file-link" href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">{{ file }}</a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div>Likes: {{ confession.likes or 0 }}
+                <form method="POST" action="{{ url_for('like_confession', post_id=confession.id) }}" style="display:inline;">
+                    <button class="like-btn" type="submit">👍 Like</button>
+                </form>
+            </div>
+            <div>Hearts: {{ confession.hearts or 0 }}
+                <form method="POST" action="{{ url_for('heart_confession', post_id=confession.id) }}" style="display:inline;">
+                    <button class="heart-btn" type="submit">❤️ Heart</button>
+                </form>
+            </div>
+            <div>Comments:</div>
+            {% if confession.comments %}
+                {% for comment in confession.comments %}
+                    <div class="comment">- <b>{{ comment.username }}</b>: {{ comment.text|e }}</div>
+                {% endfor %}
+            {% else %}
+                <div class="comment">No comments yet.</div>
+            {% endif %}
+            <form class="comment-form" method="POST" action="{{ url_for('add_comment', post_id=confession.id) }}">
+                <input type="text" name="comment" placeholder="Add a comment..." required>
+                <button type="submit">Comment</button>
+            </form>
+        </div>
+    {% else %}
+        <p>No confessions yet.</p>
+    {% endfor %}
+{% endblock %}

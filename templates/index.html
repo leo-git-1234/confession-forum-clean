@@ -19,6 +19,8 @@
     <div class="container">
         <h1>Anonymous Confessions</h1>
         <form method="POST" enctype="multipart/form-data">
+            <input type="text" name="title" placeholder="Title" required><br>
+            <input type="text" name="description" placeholder="Short description" required><br>
             <textarea name="confession" placeholder="Write your confession here..." required></textarea>
             <input type="file" name="files" multiple accept=".pdf,.doc,.docx,.txt" style="margin: 10px 0;" />
             <button type="submit">Submit</button>

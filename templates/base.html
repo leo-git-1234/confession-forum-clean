@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confession Site</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; }
+        .navbar { background: #007bff; color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .navbar a { color: #fff; margin: 0 10px; text-decoration: none; font-weight: bold; }
+        .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div>
+            <a href="{{ url_for('confessions_page') }}">All Confessions</a>
+            <a href="{{ url_for('post_confession') }}">Post a Confession</a>
+            <a href="{{ url_for('inbox') }}">Inbox</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:15px;">
+            {% if user_name %}
+                <span>Welcome, {{ user_name }}</span>
+                <div style="position:relative;">
+                    <span id="notif-bell" style="cursor:pointer;font-size:22px;position:relative;">
+                        🔔
+                        {% if notifications and notifications|length > 0 %}
+                            <span style="position:absolute;top:-6px;right:-8px;background:#dc3545;color:#fff;font-size:12px;padding:2px 6px;border-radius:50%;">{{ notifications|length }}</span>
+                        {% endif %}
+                    </span>
+                    <div id="notif-dropdown" style="display:none;position:absolute;right:0;top:30px;background:#fff;border:1px solid #ccc;box-shadow:0 2px 8px rgba(0,0,0,0.15);border-radius:6px;min-width:220px;z-index:1000;">
+                        <div style="padding:10px 15px;border-bottom:1px solid #eee;font-weight:bold;">Notifications</div>
+                        {% if notifications and notifications|length > 0 %}
+                            <ul style="list-style:none;padding:0;margin:0;max-height:250px;overflow-y:auto;">
+                            {% for note in notifications %}
+                                <li style="padding:8px 15px;border-bottom:1px solid #f1f1f1;">{{ note }}</li>
+                            {% endfor %}
+                            </ul>
+                        {% else %}
+                            <div style="padding:10px 15px;">No notifications yet.</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        const bell = document.getElementById('notif-bell');
+        const dropdown = document.getElementById('notif-dropdown');
+        if(bell && dropdown) {
+            bell.onclick = function(e) {
+                e.stopPropagation();
+                dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+            };
+            document.body.onclick = function() {
+                dropdown.style.display = 'none';
+            };
+        }
+    </script>
+</body>
+</html>

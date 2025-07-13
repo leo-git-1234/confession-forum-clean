@@ -4,7 +4,9 @@
     "username": "Secret Dolphin",
     "text": "gdhdhdf",
     "files": [],
-    "comments": []
+    "comments": [],
+    "likes": 1,
+    "notifications": []
   },
   {
     "id": "8532fefdf73540bfaee67ddbee4435fe",
@@ -17,7 +19,52 @@
       "sfsf",
       "sfdfd",
       "sdfsdf",
-      "sfsdffsd"
-    ]
+      "sfsdffsd",
+      {
+        "username": "Quiet Wolf",
+        "text": "kjijij"
+      }
+    ],
+    "likes": 6,
+    "hearts": 5,
+    "notifications": []
+  },
+  {
+    "id": "d78712ab92254e44aea36e7c67999875",
+    "username": "Mysterious Cat",
+    "user": "leoliu",
+    "title": "Help",
+    "description": "sfsdfsdf",
+    "text": "sdgfsgsgsdgsdgsdg",
+    "files": [],
+    "comments": [
+      {
+        "username": "Masked Owl",
+        "text": "dfbsdfbdfb"
+      },
+      {
+        "username": "Clever Raven",
+        "text": "fbdfbdfb"
+      },
+      {
+        "username": "Anonymous Panda",
+        "text": "xcvvbvbvbbccxb"
+      },
+      {
+        "username": "Hidden Fox",
+        "text": "vsvsdvsd"
+      },
+      {
+        "username": "Ghost Eagle",
+        "text": "gbfggnfgn"
+      },
+      {
+        "username": "Masked Owl",
+        "text": "hfghfghf"
+      }
+    ],
+    "likes": 4,
+    "hearts": 3,
+    "notifications": []
   }
 ]

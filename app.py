@@ -1,3 +1,20 @@
+@app.route('/inbox')
+def inbox():
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    username = session['user']['username']
+    confessions = []
+    notifications = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+        for confession in confessions:
+            if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
+                confession['notifications'] = []
+            if confession.get('user') == username:
+                notifications.extend(confession['notifications'])
+    return render_template('inbox.html', user_name=username, notifications=notifications)
+
 
 import os
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
@@ -5,8 +22,7 @@ from werkzeug.utils import secure_filename
 import uuid
 import random
 import json
-from flask_dance.contrib.google import make_google_blueprint, google
-from flask_dance.contrib.azure import make_azure_blueprint, azure
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 app = Flask(__name__)
@@ -14,91 +30,99 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
 app.secret_key = 'supersecretkey'  # Needed for flash messages
 CONFESSIONS_FILE = 'confessions.json'
+USERS_FILE = 'users.json'
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt'}
 USERNAMES = [
     'Anonymous Panda', 'Silent Tiger', 'Hidden Fox', 'Masked Owl', 'Secret Dolphin',
     'Clever Raven', 'Mysterious Cat', 'Quiet Wolf', 'Nameless Bear', 'Ghost Eagle'
 ]
 
-# OAuth setup (replace with your real client IDs and secrets)
-google_bp = make_google_blueprint(
-    client_id="832834040325-n98nrnnrkjamh4k8o8frr6cdlmkitllq.apps.googleusercontent.com",
-    client_secret="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",
-    scope=[
-        "https://www.googleapis.com/auth/userinfo.profile",
-        "https://www.googleapis.com/auth/userinfo.email",
-        "openid"
-    ]
-)
-azure_bp = make_azure_blueprint(
-    client_id="MICROSOFT_CLIENT_ID",
-    client_secret="MICROSOFT_CLIENT_SECRET"
-)
-app.register_blueprint(google_bp, url_prefix="/login")
-app.register_blueprint(azure_bp, url_prefix="/login")
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-@app.route('/')
+def load_users():
+    if os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_users(users):
+    with open(USERS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(users, f, indent=2)
+
+
+# Login and signup page
+@app.route('/', methods=['GET', 'POST'])
 def index():
     if 'user' in session:
         return redirect(url_for('dashboard'))
-    return render_template('login.html')
+    error = None
+    if request.method == 'POST':
+        users = load_users()
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if not username or not password:
+            error = 'Please enter both username and password.'
+        elif username not in users or not check_password_hash(users[username]['password'], password):
+            error = 'Invalid username or password.'
+        else:
+            session['user'] = {'username': username}
+            return redirect(url_for('dashboard'))
+    return render_template('login.html', error=error)
+
+# Signup page
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if 'user' in session:
+        return redirect(url_for('dashboard'))
+    error = None
+    if request.method == 'POST':
+        users = load_users()
+        username = request.form.get('username')
+        password = request.form.get('password')
+        if not username or not password:
+            error = 'Please enter both username and password.'
+        elif username in users:
+            error = 'Username already exists.'
+        else:
+            users[username] = {'password': generate_password_hash(password)}
+            save_users(users)
+            flash('Account created! Please log in.')
+            return redirect(url_for('index'))
+    return render_template('signup.html', error=error)
 
 @app.route('/dashboard')
 def dashboard():
-    user = None
-    print('DEBUG: google.authorized =', google.authorized)
-    print('DEBUG: session =', dict(session))
-    print('DEBUG: google token =', google.token)
-    if google.authorized:
-        resp = google.get("/oauth2/v2/userinfo")
-        print('DEBUG: Google userinfo response:', resp)
-        if resp.ok:
-            user = resp.json()
-            print('DEBUG: Google user info:', user)
-        else:
-            print('DEBUG: Google userinfo request failed:', resp.text)
-    elif azure.authorized:
-        resp = azure.get("/v1.0/me")
-        print('DEBUG: Azure userinfo response:', resp)
-        if resp.ok:
-            user = resp.json()
-            print('DEBUG: Azure user info:', user)
-        else:
-            print('DEBUG: Azure userinfo request failed:', resp.text)
-    if not user:
-        print('DEBUG: No user info found, redirecting to index')
+    if 'user' not in session:
         return redirect(url_for('index'))
-    session['user'] = user
-    user_email = user.get('email') or user.get('userPrincipalName')
-    user_name = user.get('name') or user.get('displayName') or user_email
+    username = session['user']['username']
     # Load confessions
     confessions = []
     if os.path.exists(CONFESSIONS_FILE):
         with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
             confessions = json.load(f)
-    user_confessions = [c for c in confessions if c.get('user_email') == user_email]
-    return render_template('dashboard.html', user_name=user_name, user_confessions=user_confessions, all_confessions=confessions)
+    user_confessions = [c for c in confessions if c.get('user') == username]
+    # dashboard route is now just a redirect to confessions page
+    return redirect(url_for('confessions_page'))
 
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# Old home route for posting confessions (now requires login)
 @app.route('/confess', methods=['GET', 'POST'])
 def home():
     if 'user' not in session:
         return redirect(url_for('index'))
-    user = session['user']
-    user_email = user.get('email') or user.get('userPrincipalName')
+    username = session['user']['username']
     if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
         confession = request.form.get('confession')
         files = request.files.getlist('files')
         file_links = []
-        if confession:
+        if confession and title and description:
             for file in files:
                 if file and allowed_file(file.filename):
                     ext = file.filename.rsplit('.', 1)[1].lower()
@@ -106,7 +130,6 @@ def home():
                     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                     file.save(filepath)
                     file_links.append(filename)
-            username = random.choice(USERNAMES)
             post_id = uuid.uuid4().hex
             confessions = []
             if os.path.exists(CONFESSIONS_FILE):
@@ -114,72 +137,177 @@ def home():
                     confessions = json.load(f)
             confessions.append({
                 'id': post_id,
-                'username': username,
-                'user_email': user_email,
+                'username': random.choice(USERNAMES),
+                'user': username,
+                'title': title,
+                'description': description,
                 'text': confession,
                 'files': file_links,
-                'comments': []
+                'comments': [],
+                'likes': 0,
+                'hearts': 0,
+                'notifications': []
             })
             with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(confessions, f, indent=2)
             flash('Confession submitted!')
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('confessions_page'))
     return render_template('index.html', confessions=[])
-    if request.method == 'POST':
-        confession = request.form.get('confession')
-        files = request.files.getlist('files')
-        file_links = []
-        if confession:
-            for file in files:
-                if file and allowed_file(file.filename):
-                    ext = file.filename.rsplit('.', 1)[1].lower()
-                    filename = f"{uuid.uuid4().hex}.{ext}"
-                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                    file.save(filepath)
-                    file_links.append(filename)
-            # Assign random username and unique id
-            username = random.choice(USERNAMES)
-            post_id = uuid.uuid4().hex
-            # Load existing confessions
-            confessions = []
-            if os.path.exists(CONFESSIONS_FILE):
-                with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-                    confessions = json.load(f)
-            # Add new confession
-            confessions.append({
-                'id': post_id,
-                'username': username,
-                'text': confession,
-                'files': file_links,
-                'comments': []
-            })
-            with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-                json.dump(confessions, f, indent=2)
-            flash('Confession submitted!')
-            return redirect(url_for('home'))
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-    return render_template('index.html', confessions=confessions)
+    # ...existing code...
 
 @app.route('/comment/<post_id>', methods=['POST'])
 def add_comment(post_id):
-    comment = request.form.get('comment')
-    if not comment:
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    comment_text = request.form.get('comment')
+    if not comment_text:
         return redirect(url_for('home'))
     confessions = []
     if os.path.exists(CONFESSIONS_FILE):
         with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
             confessions = json.load(f)
     for confession in confessions:
-        if confession['id'] == post_id:
-            confession.setdefault('comments', []).append(comment)
+        # Ensure notifications key exists
+        if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
+            confession['notifications'] = []
+        if confession.get('id') == post_id:
+            comment = {
+                'username': random.choice(USERNAMES),
+                'text': comment_text
+            }
+            if 'comments' not in confession or not isinstance(confession['comments'], list):
+                confession['comments'] = []
+            confession['comments'].append(comment)
+            # Add notification for the confession owner
+            confession_user = confession.get('user')
+            if confession_user and confession_user != session['user']['username']:
+                notification = f"Your confession received a new comment."
+                confession['notifications'].append(notification)
             break
     with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump(confessions, f, indent=2)
-    return redirect(url_for('home'))
+    return redirect(url_for('confessions_page'))
 
+@app.route('/confessions')
+def confessions_page():
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    username = session['user']['username']
+    confessions = []
+    notifications = []
+    updated = False
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+        # Ensure all confessions have notifications key
+        for confession in confessions:
+            if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
+                confession['notifications'] = []
+                updated = True
+        # Gather and clear notifications for the logged-in user
+        for confession in confessions:
+            if confession.get('user') == username:
+                notes = confession.get('notifications', [])
+                if notes:
+                    notifications.extend(notes)
+                    confession['notifications'] = []
+                    updated = True
+        if updated:
+            with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(confessions, f, indent=2)
+    return render_template('confessions.html', user_name=username, confessions=confessions, notifications=notifications)
+
+@app.route('/post', methods=['GET', 'POST'])
+def post_confession():
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    username = session['user']['username']
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        confession = request.form.get('confession')
+        files = request.files.getlist('files')
+        file_links = []
+        if confession and title and description:
+            for file in files:
+                if file and allowed_file(file.filename):
+                    ext = file.filename.rsplit('.', 1)[1].lower()
+                    filename = f"{uuid.uuid4().hex}.{ext}"
+                    filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                    file.save(filepath)
+                    file_links.append(filename)
+            post_id = uuid.uuid4().hex
+            confessions = []
+            if os.path.exists(CONFESSIONS_FILE):
+                with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+                    confessions = json.load(f)
+            confessions.append({
+                'id': post_id,
+                'username': random.choice(USERNAMES),
+                'user': username,
+                'title': title,
+                'description': description,
+                'text': confession,
+                'files': file_links,
+                'comments': [],
+                'likes': 0,
+                'hearts': 0,
+                'notifications': []
+            })
+            with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(confessions, f, indent=2)
+            flash('Confession submitted!')
+            return redirect(url_for('confessions_page'))
+    return render_template('post.html', user_name=username)
+
+@app.route('/like/<post_id>', methods=['POST'])
+def like_confession(post_id):
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    confessions = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+    for confession in confessions:
+        # Ensure notifications key exists
+        if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
+            confession['notifications'] = []
+        if confession.get('id') == post_id:
+            confession['likes'] = confession.get('likes', 0) + 1
+            # Add notification for the confession owner
+            confession_user = confession.get('user')
+            if confession_user and confession_user != session['user']['username']:
+                notification = f"Your confession received a new like."
+                confession['notifications'].append(notification)
+            break
+    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(confessions, f, indent=2)
+    return redirect(url_for('confessions_page'))
+
+# Heart (love) a confession
+@app.route('/heart/<post_id>', methods=['POST'])
+def heart_confession(post_id):
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    confessions = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+    for confession in confessions:
+        # Ensure notifications key exists
+        if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
+            confession['notifications'] = []
+        if confession.get('id') == post_id:
+            confession['hearts'] = confession.get('hearts', 0) + 1
+            # Add notification for the confession owner
+            confession_user = confession.get('user')
+            if confession_user and confession_user != session['user']['username']:
+                notification = f"Your confession received a new heart."
+                confession['notifications'].append(notification)
+            break
+    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(confessions, f, indent=2)
+    return redirect(url_for('confessions_page'))
 @app.route('/edit/<filename>', methods=['GET', 'POST'])
 def edit_file(filename):
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
