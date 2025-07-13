@@ -1,19 +1,6 @@
-@app.route('/inbox')
-def inbox():
-    if 'user' not in session:
-        return redirect(url_for('index'))
-    username = session['user']['username']
-    confessions = []
-    notifications = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-        for confession in confessions:
-            if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
-                confession['notifications'] = []
-            if confession.get('user') == username:
-                notifications.extend(confession['notifications'])
-    return render_template('inbox.html', user_name=username, notifications=notifications)
+# Route to delete a confession
+
+
 
 
 import os
@@ -36,6 +23,7 @@ USERNAMES = [
     'Anonymous Panda', 'Silent Tiger', 'Hidden Fox', 'Masked Owl', 'Secret Dolphin',
     'Clever Raven', 'Mysterious Cat', 'Quiet Wolf', 'Nameless Bear', 'Ghost Eagle'
 ]
+
 
 
 def allowed_file(filename):
@@ -167,9 +155,6 @@ def add_comment(post_id):
         with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
             confessions = json.load(f)
     for confession in confessions:
-        # Ensure notifications key exists
-        if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
-            confession['notifications'] = []
         if confession.get('id') == post_id:
             comment = {
                 'username': random.choice(USERNAMES),
@@ -178,11 +163,6 @@ def add_comment(post_id):
             if 'comments' not in confession or not isinstance(confession['comments'], list):
                 confession['comments'] = []
             confession['comments'].append(comment)
-            # Add notification for the confession owner
-            confession_user = confession.get('user')
-            if confession_user and confession_user != session['user']['username']:
-                notification = f"Your confession received a new comment."
-                confession['notifications'].append(notification)
             break
     with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump(confessions, f, indent=2)
@@ -194,28 +174,10 @@ def confessions_page():
         return redirect(url_for('index'))
     username = session['user']['username']
     confessions = []
-    notifications = []
-    updated = False
     if os.path.exists(CONFESSIONS_FILE):
         with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
             confessions = json.load(f)
-        # Ensure all confessions have notifications key
-        for confession in confessions:
-            if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
-                confession['notifications'] = []
-                updated = True
-        # Gather and clear notifications for the logged-in user
-        for confession in confessions:
-            if confession.get('user') == username:
-                notes = confession.get('notifications', [])
-                if notes:
-                    notifications.extend(notes)
-                    confession['notifications'] = []
-                    updated = True
-        if updated:
-            with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-                json.dump(confessions, f, indent=2)
-    return render_template('confessions.html', user_name=username, confessions=confessions, notifications=notifications)
+    return render_template('confessions.html', user_name=username, confessions=confessions)
 
 @app.route('/post', methods=['GET', 'POST'])
 def post_confession():
@@ -251,8 +213,7 @@ def post_confession():
                 'files': file_links,
                 'comments': [],
                 'likes': 0,
-                'hearts': 0,
-                'notifications': []
+                'hearts': 0
             })
             with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(confessions, f, indent=2)
@@ -269,16 +230,8 @@ def like_confession(post_id):
         with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
             confessions = json.load(f)
     for confession in confessions:
-        # Ensure notifications key exists
-        if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
-            confession['notifications'] = []
         if confession.get('id') == post_id:
             confession['likes'] = confession.get('likes', 0) + 1
-            # Add notification for the confession owner
-            confession_user = confession.get('user')
-            if confession_user and confession_user != session['user']['username']:
-                notification = f"Your confession received a new like."
-                confession['notifications'].append(notification)
             break
     with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump(confessions, f, indent=2)
@@ -294,16 +247,8 @@ def heart_confession(post_id):
         with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
             confessions = json.load(f)
     for confession in confessions:
-        # Ensure notifications key exists
-        if 'notifications' not in confession or not isinstance(confession.get('notifications'), list):
-            confession['notifications'] = []
         if confession.get('id') == post_id:
             confession['hearts'] = confession.get('hearts', 0) + 1
-            # Add notification for the confession owner
-            confession_user = confession.get('user')
-            if confession_user and confession_user != session['user']['username']:
-                notification = f"Your confession received a new heart."
-                confession['notifications'].append(notification)
             break
     with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
         json.dump(confessions, f, indent=2)
@@ -328,10 +273,84 @@ def edit_file(filename):
     with open(filepath, 'r', encoding='utf-8') as f:
         content = f.read()
     return f'''<h2>Editing {filename}</h2><form method="POST"><textarea name="filecontent" rows="20" cols="80">{content}</textarea><br><button type="submit">Save</button></form>'''
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
+@app.route('/my_confessions')
+def my_confessions():
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    username = session['user']['username']
+    confessions = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+    user_confessions = [c for c in confessions if c.get('user') == username]
+    return render_template('my_confessions.html', confessions=user_confessions, user_name=username)
+
+# Route to edit a confession
+@app.route('/edit_confession/<post_id>', methods=['GET', 'POST'])
+def edit_confession(post_id):
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    username = session['user']['username']
+    confessions = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+    confession = next((c for c in confessions if c.get('id') == post_id and c.get('user') == username), None)
+    if not confession:
+        flash('Confession not found or you do not have permission to edit it.')
+        return redirect(url_for('my_confessions'))
+    if request.method == 'POST':
+        confession['title'] = request.form.get('title')
+        confession['description'] = request.form.get('description')
+        confession['text'] = request.form.get('confession')
+        # Handle file removals
+        remove_files = request.form.getlist('remove_files')
+        if 'files' not in confession or not isinstance(confession['files'], list):
+            confession['files'] = []
+        for filename in remove_files:
+            if filename in confession['files']:
+                confession['files'].remove(filename)
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+        # Handle new file uploads
+        files = request.files.getlist('files')
+        for file in files:
+            if file and allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"{uuid.uuid4().hex}.{ext}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
+                confession['files'].append(filename)
+        with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(confessions, f, indent=2)
+        flash('Confession updated!')
+        return redirect(url_for('my_confessions'))
+    return render_template('edit_confession.html', confession=confession, user_name=username)
+
+# Route to delete a confession
+@app.route('/delete_confession/<post_id>', methods=['POST'])
+def delete_confession(post_id):
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    username = session['user']['username']
+    confessions = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+    new_confessions = [c for c in confessions if not (c.get('id') == post_id and c.get('user') == username)]
+    if len(new_confessions) == len(confessions):
+        flash('Confession not found or you do not have permission to delete it.')
+    else:
+        with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(new_confessions, f, indent=2)
+        flash('Confession deleted!')
+    return redirect(url_for('my_confessions'))
 if __name__ == '__main__':
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])

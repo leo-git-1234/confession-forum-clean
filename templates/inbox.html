@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>Inbox</h2>
     {% if notifications and notifications|length > 0 %}
         <ul style="list-style:none;padding:0;max-width:500px;">
         {% for note in notifications %}
