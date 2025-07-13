@@ -1,29 +1,37 @@
+
+
 import os
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session, jsonify
 from werkzeug.utils import secure_filename
 import uuid
 import random
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
-# ...existing code...
 
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
+app.secret_key = 'supersecretkey'  # Needed for flash messages
 
-
-
-
-import os
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
-from werkzeug.utils import secure_filename
-import uuid
-import random
-import json
-from werkzeug.security import generate_password_hash, check_password_hash
+# --- AI Chatbot API Endpoint ---
+@app.route('/api/ai-chat', methods=['POST'])
+def ai_chat():
+    if 'user' not in session:
+        return jsonify({'error': 'Unauthorized'}), 401
+    data = request.get_json()
+    user_message = data.get('message', '').strip()
+    if not user_message:
+        return jsonify({'error': 'Empty message'}), 400
+    ai_reply = generate_ai_comment(user_message)
+    return jsonify({'reply': ai_reply})
 
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
 app.secret_key = 'supersecretkey'  # Needed for flash messages
+
+# Config variables (must be before any route functions)
 CONFESSIONS_FILE = 'confessions.json'
 USERS_FILE = 'users.json'
 ALLOWED_EXTENSIONS = {'pdf', 'doc', 'docx', 'txt'}
@@ -31,6 +39,7 @@ USERNAMES = [
     'Anonymous Panda', 'Silent Tiger', 'Hidden Fox', 'Masked Owl', 'Secret Dolphin',
     'Clever Raven', 'Mysterious Cat', 'Quiet Wolf', 'Nameless Bear', 'Ghost Eagle'
 ]
+
 
 
 
@@ -197,6 +206,7 @@ def post_confession():
         description = request.form.get('description')
         confession = request.form.get('confession')
         files = request.files.getlist('files')
+        ai_autocomment = request.form.get('ai_autocomment') == 'on'
         file_links = []
         if confession and title and description:
             for file in files:
@@ -211,7 +221,16 @@ def post_confession():
             if os.path.exists(CONFESSIONS_FILE):
                 with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
                     confessions = json.load(f)
-            confessions.append({
+            # Always start with an empty list for new confession
+            comments = []
+            if ai_autocomment:
+                ai_comment = generate_ai_comment(confession)
+                print(f"[DEBUG] Adding AI comment: {ai_comment}")
+                comments.append({
+                    'username': 'Supportive AI',
+                    'text': ai_comment
+                })
+            confession_obj = {
                 'id': post_id,
                 'username': random.choice(USERNAMES),
                 'user': username,
@@ -219,15 +238,27 @@ def post_confession():
                 'description': description,
                 'text': confession,
                 'files': file_links,
-                'comments': [],
+                'comments': comments,
                 'likes': 0,
                 'hearts': 0
-            })
+            }
+            print(f"[DEBUG] Final confession object: {confession_obj}")
+            confessions.append(confession_obj)
             with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(confessions, f, indent=2)
             flash('Confession submitted!')
             return redirect(url_for('confessions_page'))
     return render_template('post.html', user_name=username)
+
+# --- AI comment generator ---
+def generate_ai_comment(confession_text):
+    # Placeholder: Replace with real AI API call if desired
+    # The comment is gentle, hopeful, honest, and helpful
+    return (
+        "Hey, thank you for sharing this. Remember, you're not alone in what you're feeling. "
+        "Things can and do get better, even if it takes time. If you ever need someone to talk to, "
+        "don't hesitate to reach out to a friend or a professional. Take care of yourself—you matter!"
+    )
 
 @app.route('/like/<post_id>', methods=['POST'])
 def like_confession(post_id):
@@ -360,47 +391,6 @@ def delete_confession(post_id):
         flash('Confession deleted!')
     return redirect(url_for('my_confessions'))
 
-# Like a comment
-@app.route('/like_comment/<post_id>/<int:comment_idx>', methods=['POST'])
-def like_comment(post_id, comment_idx):
-    if 'user' not in session:
-        return redirect(url_for('index'))
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-    for confession in confessions:
-        if confession.get('id') == post_id:
-            comments = confession.get('comments', [])
-            if 0 <= comment_idx < len(comments):
-                if 'likes' not in comments[comment_idx]:
-                    comments[comment_idx]['likes'] = 0
-                comments[comment_idx]['likes'] += 1
-            break
-    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(confessions, f, indent=2)
-    return redirect(url_for('confessions_page'))
-
-# Heart a comment
-@app.route('/heart_comment/<post_id>/<int:comment_idx>', methods=['POST'])
-def heart_comment(post_id, comment_idx):
-    if 'user' not in session:
-        return redirect(url_for('index'))
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-    for confession in confessions:
-        if confession.get('id') == post_id:
-            comments = confession.get('comments', [])
-            if 0 <= comment_idx < len(comments):
-                if 'hearts' not in comments[comment_idx]:
-                    comments[comment_idx]['hearts'] = 0
-                comments[comment_idx]['hearts'] += 1
-            break
-    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(confessions, f, indent=2)
-    return redirect(url_for('confessions_page'))
 
 
 if __name__ == '__main__':
@@ -419,3 +409,5 @@ if __name__ == '__main__':
             json.dump({}, f)
 
     app.run(host='127.0.0.1', port=5000, debug=True, use_reloader=False)
+
+

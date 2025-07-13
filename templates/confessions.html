@@ -31,40 +31,46 @@
             <div>Comments:</div>
             {% if confession.comments %}
                 {% for comment in confession.comments %}
-                    <div class="comment">- <b>{{ comment.username }}</b>: {{ comment.text|e }}
-                        <span style="margin-left:10px;">
-                            Likes: {{ comment.likes or 0 }}
-                            <form method="POST" action="{{ url_for('like_comment', post_id=confession.id, comment_idx=loop.index0) }}" style="display:inline;">
-                                <button type="submit" class="like-btn">👍</button>
-                            </form>
-                            Hearts: {{ comment.hearts or 0 }}
-                            <form method="POST" action="{{ url_for('heart_comment', post_id=confession.id, comment_idx=loop.index0) }}" style="display:inline;">
-                                <button type="submit" class="heart-btn">❤️</button>
-                            </form>
-                        </span>
-                    </div>
-                    {% if comment.replies %}
-                        <div style="margin-left:30px;">
-                        {% for reply in comment.replies %}
-                            <div class="comment" style="color:#007bff;">↳ <b>{{ reply.username }}</b>: {{ reply.text|e }}
-                                <span style="margin-left:10px;">
-                                    Likes: {{ reply.likes or 0 }}
-                                    <form method="POST" action="{{ url_for('like_reply', post_id=confession.id, comment_idx=loop.parent.index0, reply_idx=loop.index0) }}" style="display:inline;">
-                                        <button type="submit" class="like-btn">👍</button>
-                                    </form>
-                                    Hearts: {{ reply.hearts or 0 }}
-                                    <form method="POST" action="{{ url_for('heart_reply', post_id=confession.id, comment_idx=loop.parent.index0, reply_idx=loop.index0) }}" style="display:inline;">
-                                        <button type="submit" class="heart-btn">❤️</button>
-                                    </form>
-                                </span>
-                            </div>
-                        {% endfor %}
-                        </div>
-                    {% endif %}
-                    <!-- Reply form removed: reply_comment endpoint does not exist -->
-                        <input type="text" name="reply" placeholder="Reply to this comment..." required style="width:65%;display:inline-block;">
-                        <button type="submit">Reply</button>
-                    </form>
+                    <div class="comment">- <b>{{ comment.username }}</b>: {{ comment.text|e }}</div>
+                    <!-- Replies and reply form removed: only top-level comments allowed -->
+<script>
+// Helper to save and restore scroll position
+function saveScroll() {
+    sessionStorage.setItem('scrollTop', window.scrollY);
+}
+function restoreScroll() {
+    const scrollTop = sessionStorage.getItem('scrollTop');
+    if (scrollTop) window.scrollTo(0, parseInt(scrollTop));
+}
+window.onload = restoreScroll;
+
+// AJAX form handler for like, heart, comment, reply
+document.addEventListener('DOMContentLoaded', function() {
+    function ajaxifyForms(selector) {
+        document.querySelectorAll(selector).forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveScroll();
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    credentials: 'same-origin'
+                }).then(resp => {
+                    if (resp.redirected) {
+                        window.location.href = resp.url;
+                    } else {
+                        window.location.reload();
+                    }
+                });
+            });
+        });
+    }
+    ajaxifyForms('form.like-btn, form.heart-btn, form.comment-form, form.reply-form');
+    // Also handle all forms with only a button (like/heart)
+    ajaxifyForms('form');
+});
+</script>
                 {% endfor %}
             {% else %}
                 <div class="comment">No comments yet.</div>

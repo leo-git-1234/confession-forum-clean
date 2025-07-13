@@ -103,8 +103,164 @@
     <div class="container">
         {% block content %}{% endblock %}
     </div>
+    <!-- Floating AI Chatbot Widget -->
+    <style>
+        #ai-chatbot-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 2em;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            cursor: pointer;
+            z-index: 1001;
+        }
+        #ai-chatbot-window {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 340px;
+            max-width: 95vw;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            z-index: 1002;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #ai-chatbot-header {
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            padding: 12px 18px;
+            font-weight: 600;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #ai-chatbot-messages {
+            padding: 16px;
+            min-height: 120px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #f4f8fb;
+        }
+        .ai-msg, .user-msg {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-break: break-word;
+        }
+        .ai-msg {
+            background: #e3f0ff;
+            color: #0056b3;
+            align-self: flex-start;
+        }
+        .user-msg {
+            background: #d1ffd6;
+            color: #1a4d1a;
+            align-self: flex-end;
+        }
+        #ai-chatbot-input-row {
+            display: flex;
+            border-top: 1px solid #eee;
+            padding: 10px;
+            background: #fafbfc;
+        }
+        #ai-chatbot-input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+        #ai-chatbot-send {
+            margin-left: 8px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+    </style>
+    <button id="ai-chatbot-btn" title="Chat with AI">💬</button>
+    <div id="ai-chatbot-window">
+        <div id="ai-chatbot-header">
+            <span>Supportive AI Chatbot</span>
+            <button onclick="closeChatbot()" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;">&times;</button>
+        </div>
+        <div id="ai-chatbot-messages"></div>
+        <form id="ai-chatbot-form" onsubmit="return sendAIMessage();">
+            <div id="ai-chatbot-input-row">
+                <input id="ai-chatbot-input" type="text" placeholder="Type your message..." autocomplete="off" required />
+                <button id="ai-chatbot-send" type="submit">Send</button>
+            </div>
+        </form>
+    </div>
     <script>
-        // Notification bell and dropdown removed
+        const chatbotBtn = document.getElementById('ai-chatbot-btn');
+        const chatbotWindow = document.getElementById('ai-chatbot-window');
+        const chatbotMessages = document.getElementById('ai-chatbot-messages');
+        const chatbotForm = document.getElementById('ai-chatbot-form');
+        const chatbotInput = document.getElementById('ai-chatbot-input');
+        let chatHistory = [];
+
+        chatbotBtn.onclick = function() {
+            chatbotWindow.style.display = 'flex';
+            chatbotBtn.style.display = 'none';
+            chatbotInput.focus();
+        };
+        function closeChatbot() {
+            chatbotWindow.style.display = 'none';
+            chatbotBtn.style.display = 'block';
+        }
+        function renderChat() {
+            chatbotMessages.innerHTML = '';
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = msg.role === 'ai' ? 'ai-msg' : 'user-msg';
+                div.textContent = (msg.role === 'ai' ? 'AI: ' : 'You: ') + msg.text;
+                chatbotMessages.appendChild(div);
+            });
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        }
+        function sendAIMessage() {
+            const text = chatbotInput.value.trim();
+            if (!text) return false;
+            chatHistory.push({role: 'user', text});
+            renderChat();
+            chatbotInput.value = '';
+            fetch('/api/ai-chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.reply) {
+                    chatHistory.push({role: 'ai', text: data.reply});
+                    renderChat();
+                } else if (data.error) {
+                    chatHistory.push({role: 'ai', text: '[Error: ' + data.error + ']'});
+                    renderChat();
+                }
+            })
+            .catch(() => {
+                chatHistory.push({role: 'ai', text: '[Error: Could not reach AI]'});
+                renderChat();
+            });
+            return false;
+        }
+        window.closeChatbot = closeChatbot;
     </script>
 </body>
 </html>
