@@ -103,6 +103,7 @@
     <div class="container">
         {% block content %}{% endblock %}
     </div>
+    {% if not hide_navbar %}
     <!-- Floating AI Chatbot Widget -->
     <style>
         #ai-chatbot-btn {
@@ -213,7 +214,6 @@
         const chatbotForm = document.getElementById('ai-chatbot-form');
         const chatbotInput = document.getElementById('ai-chatbot-input');
         let chatHistory = [];
-
         chatbotBtn.onclick = function() {
             chatbotWindow.style.display = 'flex';
             chatbotBtn.style.display = 'none';
@@ -239,7 +239,7 @@
             chatHistory.push({role: 'user', text});
             renderChat();
             chatbotInput.value = '';
-            fetch('/api/ai-chat', {
+            fetch(window.location.origin + '/api/ai-chat', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({message: text})
@@ -254,7 +254,8 @@
                     renderChat();
                 }
             })
-            .catch(() => {
+            .catch((err) => {
+                console.error('AI Chatbot fetch error:', err);
                 chatHistory.push({role: 'ai', text: '[Error: Could not reach AI]'});
                 renderChat();
             });
@@ -262,5 +263,6 @@
         }
         window.closeChatbot = closeChatbot;
     </script>
+    {% endif %}
 </body>
 </html>

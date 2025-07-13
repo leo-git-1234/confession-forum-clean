@@ -1,6 +1,8 @@
 
 
+
 import os
+import openai
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session, jsonify
 from werkzeug.utils import secure_filename
 import uuid
@@ -8,28 +10,33 @@ import random
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
 app.secret_key = 'supersecretkey'  # Needed for flash messages
+
+# --- OpenAI API Key Setup ---
+OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+if not OPENAI_API_KEY:
+    # Fallback to hardcoded key (not recommended for production)
+    OPENAI_API_KEY = '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'
+openai.api_key = OPENAI_API_KEY
 
 # --- AI Chatbot API Endpoint ---
 @app.route('/api/ai-chat', methods=['POST'])
 def ai_chat():
-    if 'user' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-    data = request.get_json()
-    user_message = data.get('message', '').strip()
-    if not user_message:
-        return jsonify({'error': 'Empty message'}), 400
-    ai_reply = generate_ai_comment(user_message)
-    return jsonify({'reply': ai_reply})
-
-
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
-app.secret_key = 'supersecretkey'  # Needed for flash messages
+    # Allow both authenticated and unauthenticated users to use the chatbot
+    try:
+        data = request.get_json()
+        user_message = data.get('message', '').strip()
+        if not user_message:
+            return jsonify({'error': 'Empty message'}), 400
+        ai_reply = generate_ai_comment(user_message)
+        return jsonify({'reply': ai_reply})
+    except Exception as e:
+        print(f"[ERROR] /api/ai-chat: {e}")
+        return jsonify({'error': 'Internal server error'}), 500
 
 # Config variables (must be before any route functions)
 CONFESSIONS_FILE = 'confessions.json'
@@ -252,13 +259,24 @@ def post_confession():
 
 # --- AI comment generator ---
 def generate_ai_comment(confession_text):
-    # Placeholder: Replace with real AI API call if desired
-    # The comment is gentle, hopeful, honest, and helpful
-    return (
-        "Hey, thank you for sharing this. Remember, you're not alone in what you're feeling. "
-        "Things can and do get better, even if it takes time. If you ever need someone to talk to, "
-        "don't hesitate to reach out to a friend or a professional. Take care of yourself—you matter!"
-    )
+    """
+    Generate a gentle, hopeful, honest, and helpful AI comment using OpenAI's GPT-3.5/4 API.
+    """
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a supportive, gentle, and helpful assistant. Respond to confessions with empathy, hope, and honesty."},
+                {"role": "user", "content": confession_text}
+            ],
+            max_tokens=120,
+            temperature=0.7
+        )
+        ai_reply = response.choices[0].message['content'].strip()
+        return ai_reply
+    except Exception as e:
+        print(f"[ERROR] OpenAI API error: {e}")
+        return "[AI Error: Could not generate a response. Please try again later.]"
 
 @app.route('/like/<post_id>', methods=['POST'])
 def like_confession(post_id):
