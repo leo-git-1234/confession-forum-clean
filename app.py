@@ -1,4 +1,12 @@
-# Route to delete a confession
+import os
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session
+from werkzeug.utils import secure_filename
+import uuid
+import random
+import json
+from werkzeug.security import generate_password_hash, check_password_hash
+# ...existing code...
+
 
 
 
@@ -351,7 +359,63 @@ def delete_confession(post_id):
             json.dump(new_confessions, f, indent=2)
         flash('Confession deleted!')
     return redirect(url_for('my_confessions'))
+
+# Like a comment
+@app.route('/like_comment/<post_id>/<int:comment_idx>', methods=['POST'])
+def like_comment(post_id, comment_idx):
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    confessions = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+    for confession in confessions:
+        if confession.get('id') == post_id:
+            comments = confession.get('comments', [])
+            if 0 <= comment_idx < len(comments):
+                if 'likes' not in comments[comment_idx]:
+                    comments[comment_idx]['likes'] = 0
+                comments[comment_idx]['likes'] += 1
+            break
+    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(confessions, f, indent=2)
+    return redirect(url_for('confessions_page'))
+
+# Heart a comment
+@app.route('/heart_comment/<post_id>/<int:comment_idx>', methods=['POST'])
+def heart_comment(post_id, comment_idx):
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    confessions = []
+    if os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
+            confessions = json.load(f)
+    for confession in confessions:
+        if confession.get('id') == post_id:
+            comments = confession.get('comments', [])
+            if 0 <= comment_idx < len(comments):
+                if 'hearts' not in comments[comment_idx]:
+                    comments[comment_idx]['hearts'] = 0
+                comments[comment_idx]['hearts'] += 1
+            break
+    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(confessions, f, indent=2)
+    return redirect(url_for('confessions_page'))
+
+
 if __name__ == '__main__':
+    # Ensure uploads folder exists
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
-    app.run(debug=True)
+
+    # Ensure confessions.json exists
+    if not os.path.exists(CONFESSIONS_FILE):
+        with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
+            json.dump([], f)
+
+    # Ensure users.json exists
+    if not os.path.exists(USERS_FILE):
+        with open(USERS_FILE, 'w', encoding='utf-8') as f:
+            json.dump({}, f)
+
+    app.run(host='127.0.0.1', port=5000, debug=True, use_reloader=False)
