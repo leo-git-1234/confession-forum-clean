@@ -1,26 +1,22 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Post a Confession</title>
-    <style>
-        body { font-family: Arial, sans-serif; background: #f7f7f7; }
-        .container { max-width: 500px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        textarea { width: 100%; }
-        button { background: #007bff; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 10px 0; }
-        a { color: #007bff; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h2>Post a Confession</h2>
-        <form method="POST" enctype="multipart/form-data">
-            <input type="text" name="title" placeholder="Title" required><br>
-            <input type="text" name="description" placeholder="Short description" required><br>
-            <textarea name="confession" rows="4" placeholder="Write your confession..." required></textarea><br>
-            <input type="file" name="files" multiple accept=".pdf,.doc,.docx,.txt"><br>
-            <button type="submit">Submit Confession</button>
-        </form>
-        <a href="{{ url_for('confessions_page') }}">Back to All Confessions</a>
-    </div>
-</body>
-</html>
+{% extends "base.html" %}
+{% block content %}
+<h2 style="margin-bottom:30px;">Post a Confession</h2>
+<form method="POST" enctype="multipart/form-data">
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" placeholder="Title" required>
+
+    <label for="description">Description:</label>
+    <input type="text" id="description" name="description" placeholder="Short description" required>
+
+    <label for="confession">Main Content:</label>
+    <textarea id="confession" name="confession" rows="6" placeholder="Write your confession..." required></textarea>
+
+    <label for="files">Attach Files:</label>
+    <input type="file" id="files" name="files" multiple accept=".pdf,.doc,.docx,.txt">
+
+    <button type="submit">Submit Confession</button>
+</form>
+<div style="margin-top:20px;">
+    <a href="{{ url_for('confessions_page') }}" class="file-link">Back to All Confessions</a>
+</div>
+{% endblock %}

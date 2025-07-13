@@ -3,10 +3,52 @@
 <head>
     <title>Confession Site</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; }
-        .navbar { background: #007bff; color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
-        .navbar a { color: #fff; margin: 0 10px; text-decoration: none; font-weight: bold; }
-        .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; }
+        .navbar { background: linear-gradient(90deg, #007bff 60%, #0056b3 100%); color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .navbar a { color: #fff; margin: 0 10px; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+        .navbar a:hover { color: #ffd700; }
+        .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
+        h1, h2, h3 { color: #222; font-weight: 600; }
+        label { font-weight: 500; color: #333; }
+        input[type="text"], input[type="password"], textarea, input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 16px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            background: #fafbfc;
+            transition: border 0.2s;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+            border: 1.5px solid #007bff;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 10px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #0056b3 60%, #007bff 100%);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        .file-link { color: #007bff; text-decoration: underline; }
+        .file-link:hover { color: #0056b3; }
+        ul { padding-left: 20px; }
+        .comment { color: #444; margin-left: 10px; }
+        .confession { margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 10px; background: #fafbfc; }
+        .confession .username { color: #007bff; font-weight: 600; }
+        .confession input[type="text"] { width: auto; display: inline-block; }
+        .comment-form input[type="text"] { width: 70%; display: inline-block; }
     </style>
 </head>
 <body>

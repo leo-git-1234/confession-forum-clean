@@ -4,11 +4,43 @@
     <meta charset="UTF-8">
     <title>Sign In</title>
     <style>
-        body { font-family: Arial, sans-serif; background: #f7f7f7; }
-        .container { max-width: 400px; margin: 80px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
-        button { background: #007bff; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin: 10px 0; }
-        button.google { background: #db4437; }
-        button.microsoft { background: #2F2F2F; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; }
+        .container { max-width: 400px; margin: 80px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); text-align: center; }
+        h2 { color: #222; font-weight: 600; }
+        label { font-weight: 500; color: #333; display:block; margin-top:10px; }
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 16px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            background: #fafbfc;
+            transition: border 0.2s;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            border: 1.5px solid #007bff;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 10px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #0056b3 60%, #007bff 100%);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        a { color: #007bff; text-decoration: none; }
+        a:hover { color: #0056b3; text-decoration: underline; }
     </style>
 </head>
 <body>

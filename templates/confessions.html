@@ -6,12 +6,16 @@
             <div class="username"><b>{{ confession.username }}</b></div>
             <div><b>Title:</b> {{ confession.title|e }}</div>
             <div><b>Description:</b> {{ confession.description|e }}</div>
-            <div>{{ confession.text|e }}</div>
-            {% if confession.files %}
+            <div><b>Main Content:</b><br>
+                <div style="margin-left:10px;">{{ confession.text|e }}</div>
+            </div>
+            {% if confession.files and confession.files|length > 0 %}
                 <div>Files:
+                    <ul>
                     {% for file in confession.files %}
-                        <a class="file-link" href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">{{ file }}</a>
+                        <li><a class="file-link" href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">{{ file }}</a></li>
                     {% endfor %}
+                    </ul>
                 </div>
             {% endif %}
             <div>Likes: {{ confession.likes or 0 }}
