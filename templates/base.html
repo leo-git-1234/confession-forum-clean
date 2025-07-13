@@ -2,12 +2,64 @@
 <html>
 <head>
     <title>Confession Site</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; }
         .navbar { background: linear-gradient(90deg, #007bff 60%, #0056b3 100%); color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
         .navbar a { color: #fff; margin: 0 10px; text-decoration: none; font-weight: 500; transition: color 0.2s; }
         .navbar a:hover { color: #ffd700; }
         .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+            width: 95vw;
+            box-sizing: border-box;
+        }
+        /* Responsive Navbar */
+        .navbar {
+            flex-wrap: wrap;
+        }
+        .navbar > div {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        @media (max-width: 700px) {
+            .container {
+                margin: 8px auto;
+                padding: 8px;
+                border-radius: 8px;
+                width: 99vw;
+            }
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px;
+            }
+            .navbar > div {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+            .banner-title {
+                font-size: 1.2em;
+                padding: 10px 0 8px 0;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 4px;
+                border-radius: 5px;
+            }
+            .banner-title {
+                font-size: 1em;
+                padding: 6px 0 4px 0;
+            }
+        }
         h1, h2, h3 { color: #222; font-weight: 600; }
         label { font-weight: 500; color: #333; }
         input[type="text"], input[type="password"], textarea, input[type="file"] {
@@ -120,6 +172,98 @@
             box-shadow: 0 4px 16px rgba(0,0,0,0.18);
             cursor: pointer;
             z-index: 1001;
+        }
+        #ai-chatbot-window {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 340px;
+            max-width: 98vw;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            z-index: 1002;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        @media (max-width: 600px) {
+            #ai-chatbot-btn {
+                bottom: 12px;
+                right: 12px;
+                width: 44px;
+                height: 44px;
+                font-size: 1.3em;
+            }
+            #ai-chatbot-window {
+                bottom: 60px;
+                right: 4px;
+                width: 98vw;
+                min-width: 0;
+                max-width: 99vw;
+                border-radius: 8px;
+            }
+            #ai-chatbot-header {
+                font-size: 1em;
+                padding: 8px 8px;
+            }
+            #ai-chatbot-messages {
+                padding: 6px;
+                min-height: 60px;
+                max-height: 120px;
+            }
+            #ai-chatbot-input-row {
+                padding: 4px;
+            }
+            #ai-chatbot-input {
+                font-size: 0.95em;
+            }
+            #ai-chatbot-send {
+                padding: 5px 8px;
+                font-size: 0.95em;
+            }
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px auto;
+                padding: 10px;
+                border-radius: 8px;
+                width: 99vw;
+            }
+            #ai-chatbot-btn {
+                bottom: 16px;
+                right: 16px;
+                width: 48px;
+                height: 48px;
+                font-size: 1.5em;
+            }
+            #ai-chatbot-window {
+                bottom: 70px;
+                right: 8px;
+                width: 98vw;
+                min-width: 0;
+                max-width: 99vw;
+                border-radius: 8px;
+            }
+            #ai-chatbot-header {
+                font-size: 1em;
+                padding: 10px 10px;
+            }
+            #ai-chatbot-messages {
+                padding: 8px;
+                min-height: 80px;
+                max-height: 180px;
+            }
+            #ai-chatbot-input-row {
+                padding: 6px;
+            }
+            #ai-chatbot-input {
+                font-size: 0.95em;
+            }
+            #ai-chatbot-send {
+                padding: 6px 10px;
+                font-size: 0.95em;
+            }
         }
         #ai-chatbot-window {
             display: none;
