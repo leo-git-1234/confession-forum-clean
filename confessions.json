@@ -76,8 +76,21 @@
     "description": "help me",
     "text": "I feel regretful for swearing at someone without any reason.",
     "files": [],
-    "comments": [],
-    "likes": 2,
-    "hearts": 0
+    "comments": [
+      {
+        "username": "Mysterious Cat",
+        "text": "cvsvsvsv"
+      },
+      {
+        "username": "Quiet Wolf",
+        "text": "vsdvsdvsdv"
+      },
+      {
+        "username": "Silent Tiger",
+        "text": "vsvvdsds"
+      }
+    ],
+    "likes": 4,
+    "hearts": 4
   }
 ]
