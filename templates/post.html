@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="margin-bottom:30px;">Post a Confession</h2>
+<form method="POST" enctype="multipart/form-data">
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" placeholder="Title" required>
+
+    <label for="description">Description:</label>
+    <input type="text" id="description" name="description" placeholder="Short description" required>
+
+    <label for="confession">Main Content:</label>
+    <textarea id="confession" name="confession" rows="6" placeholder="Write your confession..." required></textarea>
+
+    <label for="files">Attach Files:</label>
+    <input type="file" id="files" name="files" multiple accept=".pdf,.doc,.docx,.txt">
+
+    <div style="margin: 15px 0;">
+        <input type="checkbox" id="ai_autocomment" name="ai_autocomment">
+        <label for="ai_autocomment">Let AI auto-comment on my confession (gentle, hopeful, honest, helpful)</label>
+    </div>
+
+    <button type="submit">Submit Confession</button>
+</form>
+<div style="margin-top:20px;">
+    <a href="{{ url_for('confessions_page') }}" class="file-link">Back to All Confessions</a>
+</div>
+{% endblock %}

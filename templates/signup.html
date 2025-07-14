@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="max-width:400px;margin:60px auto 0 auto;background:#fff;padding:32px 28px 28px 28px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.10);text-align:center;">
+    <h2 style="margin-bottom:24px;">Sign Up</h2>
+    {% if error %}
+        <p style="color: red; margin-bottom: 16px;">{{ error }}</p>
+    {% endif %}
+    <form method="POST">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit" style="width:100%;margin-top:10px;">Sign Up</button>
+    </form>
+    <p style="margin-top:18px;">Already have an account? <a href="{{ url_for('index') }}">Login here</a></p>
+</div>
+{% endblock %}

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Confession Site</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; }
+        .navbar { background: linear-gradient(90deg, #007bff 60%, #0056b3 100%); color: #fff; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        .navbar a { color: #fff; margin: 0 10px; text-decoration: none; font-weight: 500; transition: color 0.2s; }
+        .navbar a:hover { color: #ffd700; }
+        .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
+            width: 95vw;
+            box-sizing: border-box;
+        }
+        /* Responsive Navbar */
+        .navbar {
+            flex-wrap: wrap;
+        }
+        .navbar > div {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        @media (max-width: 700px) {
+            .container {
+                margin: 8px auto;
+                padding: 8px;
+                border-radius: 8px;
+                width: 99vw;
+            }
+            .navbar {
+                flex-direction: column;
+                align-items: flex-start;
+                padding: 10px;
+            }
+            .navbar > div {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+            .banner-title {
+                font-size: 1.2em;
+                padding: 10px 0 8px 0;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 4px;
+                border-radius: 5px;
+            }
+            .banner-title {
+                font-size: 1em;
+                padding: 6px 0 4px 0;
+            }
+        }
+        h1, h2, h3 { color: #222; font-weight: 600; }
+        label { font-weight: 500; color: #333; }
+        input[type="text"], input[type="password"], textarea, input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0 16px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            font-size: 1em;
+            background: #fafbfc;
+            transition: border 0.2s;
+        }
+        input[type="text"]:focus, input[type="password"]:focus, textarea:focus {
+            border: 1.5px solid #007bff;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 10px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #0056b3 60%, #007bff 100%);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+        }
+        .file-link { color: #007bff; text-decoration: underline; }
+        .file-link:hover { color: #0056b3; }
+        ul { padding-left: 20px; }
+        .comment { color: #444; margin-left: 10px; }
+        .confession { margin-bottom: 30px; padding: 20px; border: 1px solid #eee; border-radius: 10px; background: #fafbfc; }
+        .confession .username { color: #007bff; font-weight: 600; }
+        .confession input[type="text"] { width: auto; display: inline-block; }
+        .comment-form input[type="text"] { width: 70%; display: inline-block; }
+        /* Banner Styles */
+        .banner-bg {
+            width: 100%;
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            padding: 0;
+            margin: 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 70px;
+        }
+        .banner-title {
+            color: #fff;
+            font-size: 2.1em;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px 0 14px 0;
+        }
+        .banner-icon {
+            font-size: 1.5em;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.10));
+        }
+    </style>
+</head>
+<body>
+    <div class="banner-bg">
+        <div class="banner-title">
+            <span class="banner-icon">🕵️‍♂️</span>
+            Anonymous Confession Website
+        </div>
+    </div>
+    {% if not hide_navbar %}
+    <div class="navbar">
+        <div>
+            <a href="{{ url_for('confessions_page') }}">All Confessions</a>
+            <a href="{{ url_for('post_confession') }}">Post a Confession</a>
+            <a href="{{ url_for('my_confessions') }}">My Confessions</a>
+        </div>
+        <div style="display:flex;align-items:center;gap:15px;">
+            {% if user_name %}
+                <span>Welcome, {{ user_name }}</span>
+                <a href="{{ url_for('logout') }}">Logout</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+    {% if not hide_navbar %}
+    <!-- Floating AI Chatbot Widget -->
+    <style>
+        #ai-chatbot-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 2em;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.18);
+            cursor: pointer;
+            z-index: 1001;
+        }
+        #ai-chatbot-window {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 340px;
+            max-width: 98vw;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            z-index: 1002;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        @media (max-width: 600px) {
+            #ai-chatbot-btn {
+                bottom: 12px;
+                right: 12px;
+                width: 44px;
+                height: 44px;
+                font-size: 1.3em;
+            }
+            #ai-chatbot-window {
+                bottom: 60px;
+                right: 4px;
+                width: 98vw;
+                min-width: 0;
+                max-width: 99vw;
+                border-radius: 8px;
+            }
+            #ai-chatbot-header {
+                font-size: 1em;
+                padding: 8px 8px;
+            }
+            #ai-chatbot-messages {
+                padding: 6px;
+                min-height: 60px;
+                max-height: 120px;
+            }
+            #ai-chatbot-input-row {
+                padding: 4px;
+            }
+            #ai-chatbot-input {
+                font-size: 0.95em;
+            }
+            #ai-chatbot-send {
+                padding: 5px 8px;
+                font-size: 0.95em;
+            }
+        }
+        @media (max-width: 600px) {
+            .container {
+                margin: 10px auto;
+                padding: 10px;
+                border-radius: 8px;
+                width: 99vw;
+            }
+            #ai-chatbot-btn {
+                bottom: 16px;
+                right: 16px;
+                width: 48px;
+                height: 48px;
+                font-size: 1.5em;
+            }
+            #ai-chatbot-window {
+                bottom: 70px;
+                right: 8px;
+                width: 98vw;
+                min-width: 0;
+                max-width: 99vw;
+                border-radius: 8px;
+            }
+            #ai-chatbot-header {
+                font-size: 1em;
+                padding: 10px 10px;
+            }
+            #ai-chatbot-messages {
+                padding: 8px;
+                min-height: 80px;
+                max-height: 180px;
+            }
+            #ai-chatbot-input-row {
+                padding: 6px;
+            }
+            #ai-chatbot-input {
+                font-size: 0.95em;
+            }
+            #ai-chatbot-send {
+                padding: 6px 10px;
+                font-size: 0.95em;
+            }
+        }
+        #ai-chatbot-window {
+            display: none;
+            position: fixed;
+            bottom: 100px;
+            right: 30px;
+            width: 340px;
+            max-width: 95vw;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+            z-index: 1002;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #ai-chatbot-header {
+            background: linear-gradient(90deg, #007bff 60%, #0056b3 100%);
+            color: #fff;
+            padding: 12px 18px;
+            font-weight: 600;
+            font-size: 1.1em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #ai-chatbot-messages {
+            padding: 16px;
+            min-height: 120px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: #f4f8fb;
+        }
+        .ai-msg, .user-msg {
+            margin-bottom: 10px;
+            padding: 8px 12px;
+            border-radius: 8px;
+            max-width: 85%;
+            word-break: break-word;
+        }
+        .ai-msg {
+            background: #e3f0ff;
+            color: #0056b3;
+            align-self: flex-start;
+        }
+        .user-msg {
+            background: #d1ffd6;
+            color: #1a4d1a;
+            align-self: flex-end;
+        }
+        #ai-chatbot-input-row {
+            display: flex;
+            border-top: 1px solid #eee;
+            padding: 10px;
+            background: #fafbfc;
+        }
+        #ai-chatbot-input {
+            flex: 1;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 1em;
+        }
+        #ai-chatbot-send {
+            margin-left: 8px;
+            background: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+    </style>
+    <button id="ai-chatbot-btn" title="Chat with AI">💬</button>
+    <div id="ai-chatbot-window">
+        <div id="ai-chatbot-header">
+            <span>Supportive AI Chatbot</span>
+            <button onclick="closeChatbot()" style="background:none;border:none;color:#fff;font-size:1.2em;cursor:pointer;">&times;</button>
+        </div>
+        <div id="ai-chatbot-messages"></div>
+        <form id="ai-chatbot-form" onsubmit="return sendAIMessage();">
+            <div id="ai-chatbot-input-row">
+                <input id="ai-chatbot-input" type="text" placeholder="Type your message..." autocomplete="off" required />
+                <button id="ai-chatbot-send" type="submit">Send</button>
+            </div>
+        </form>
+    </div>
+    <script>
+        const chatbotBtn = document.getElementById('ai-chatbot-btn');
+        const chatbotWindow = document.getElementById('ai-chatbot-window');
+        const chatbotMessages = document.getElementById('ai-chatbot-messages');
+        const chatbotForm = document.getElementById('ai-chatbot-form');
+        const chatbotInput = document.getElementById('ai-chatbot-input');
+        let chatHistory = [];
+        chatbotBtn.onclick = function() {
+            chatbotWindow.style.display = 'flex';
+            chatbotBtn.style.display = 'none';
+            chatbotInput.focus();
+        };
+        function closeChatbot() {
+            chatbotWindow.style.display = 'none';
+            chatbotBtn.style.display = 'block';
+        }
+        function renderChat() {
+            chatbotMessages.innerHTML = '';
+            chatHistory.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = msg.role === 'ai' ? 'ai-msg' : 'user-msg';
+                div.textContent = (msg.role === 'ai' ? 'AI: ' : 'You: ') + msg.text;
+                chatbotMessages.appendChild(div);
+            });
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+        }
+        function sendAIMessage() {
+            const text = chatbotInput.value.trim();
+            if (!text) return false;
+            chatHistory.push({role: 'user', text});
+            renderChat();
+            chatbotInput.value = '';
+            fetch(window.location.origin + '/api/ai-chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: text})
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.reply) {
+                    chatHistory.push({role: 'ai', text: data.reply});
+                    renderChat();
+                } else if (data.error) {
+                    chatHistory.push({role: 'ai', text: '[Error: ' + data.error + ']'});
+                    renderChat();
+                }
+            })
+            .catch((err) => {
+                console.error('AI Chatbot fetch error:', err);
+                chatHistory.push({role: 'ai', text: '[Error: Could not reach AI]'});
+                renderChat();
+            });
+            return false;
+        }
+        window.closeChatbot = closeChatbot;
+    </script>
+    {% endif %}
+</body>
+</html>

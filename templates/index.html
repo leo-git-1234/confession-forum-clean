@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anonymous Confession Website</title>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        form { margin-bottom: 30px; }
+        textarea { width: 100%; height: 80px; padding: 10px; border-radius: 4px; border: 1px solid #ccc; resize: vertical; }
+        button { background: #007bff; color: #fff; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .confession { background: #f1f1f1; margin-bottom: 15px; padding: 15px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Anonymous Confessions</h1>
+        <form method="POST" enctype="multipart/form-data">
+            <input type="text" name="title" placeholder="Title" required><br>
+            <input type="text" name="description" placeholder="Short description" required><br>
+            <textarea name="confession" placeholder="Write your confession here..." required></textarea>
+            <input type="file" name="files" multiple accept=".pdf,.doc,.docx,.txt" style="margin: 10px 0;" />
+            <button type="submit">Submit</button>
+        </form>
+        <h2>Recent Confessions</h2>
+        {% for confession in confessions[::-1] %}
+            <div class="confession">
+                <div><b>{{ confession.username }}</b>:</div>
+                <div>{{ confession.text|e }}</div>
+                {% if confession.files %}
+                    <div style="margin-top:8px;">
+                        <b>Files:</b>
+                        <ul>
+                        {% for file in confession.files %}
+                            <li>
+                                <a href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">View</a>
+                                | <a href="{{ url_for('edit_file', filename=file) }}" target="_blank">Edit</a>
+                                ({{ file }})
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+                <form method="POST" action="{{ url_for('add_comment', post_id=confession.id) }}" style="margin-top:10px;">
+                    <input type="text" name="comment" placeholder="Add a comment..." required style="width:70%;">
+                    <button type="submit">Comment</button>
+                </form>
+                {% if confession.comments %}
+                    <div style="margin-top:8px;">
+                        <b>Comments:</b>
+                        <ul>
+                        {% for comment in confession.comments %}
+                            <li>{{ comment }}</li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <p>No confessions yet. Be the first!</p>
+        {% endfor %}
+    </div>
+</body>
+</html>

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+    <h2>All Confessions</h2>
+    {% for confession in confessions|reverse %}
+        <div class="confession">
+            <div class="username"><b>{{ confession.username }}</b></div>
+            <div><b>Title:</b> {{ confession.title|e }}</div>
+            <div><b>Description:</b> {{ confession.description|e }}</div>
+            <div><b>Main Content:</b><br>
+                <div style="margin-left:10px;">{{ confession.text|e }}</div>
+            </div>
+            {% if confession.files and confession.files|length > 0 %}
+                <div>Files:
+                    <ul>
+                    {% for file in confession.files %}
+                        <li><a class="file-link" href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">{{ file }}</a></li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            <div>Likes: {{ confession.likes or 0 }}
+                <form method="POST" action="{{ url_for('like_confession', post_id=confession.id) }}" style="display:inline;">
+                    <button class="like-btn" type="submit">👍 Like</button>
+                </form>
+            </div>
+            <div>Hearts: {{ confession.hearts or 0 }}
+                <form method="POST" action="{{ url_for('heart_confession', post_id=confession.id) }}" style="display:inline;">
+                    <button class="heart-btn" type="submit">❤️ Heart</button>
+                </form>
+            </div>
+            <div>Comments:</div>
+            {% if confession.comments %}
+                {% for comment in confession.comments %}
+                    <div class="comment">- <b>{{ comment.username }}</b>: {{ comment.text|e }}</div>
+                    <!-- Replies and reply form removed: only top-level comments allowed -->
+<script>
+// Helper to save and restore scroll position
+function saveScroll() {
+    sessionStorage.setItem('scrollTop', window.scrollY);
+}
+function restoreScroll() {
+    const scrollTop = sessionStorage.getItem('scrollTop');
+    if (scrollTop) window.scrollTo(0, parseInt(scrollTop));
+}
+window.onload = restoreScroll;
+
+// AJAX form handler for like, heart, comment, reply
+document.addEventListener('DOMContentLoaded', function() {
+    function ajaxifyForms(selector) {
+        document.querySelectorAll(selector).forEach(form => {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                saveScroll();
+                const formData = new FormData(form);
+                fetch(form.action, {
+                    method: form.method,
+                    body: formData,
+                    credentials: 'same-origin'
+                }).then(resp => {
+                    if (resp.redirected) {
+                        window.location.href = resp.url;
+                    } else {
+                        window.location.reload();
+                    }
+                });
+            });
+        });
+    }
+    ajaxifyForms('form.like-btn, form.heart-btn, form.comment-form, form.reply-form');
+    // Also handle all forms with only a button (like/heart)
+    ajaxifyForms('form');
+});
+</script>
+                {% endfor %}
+            {% else %}
+                <div class="comment">No comments yet.</div>
+            {% endif %}
+            <form class="comment-form" method="POST" action="{{ url_for('add_comment', post_id=confession.id) }}">
+                <input type="text" name="comment" placeholder="Add a comment..." required>
+                <button type="submit">Comment</button>
+            </form>
+        </div>
+    {% else %}
+        <p>No confessions yet.</p>
+    {% endfor %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Edit Confession</h2>
+<form method="POST" enctype="multipart/form-data">
+    <label for="title">Title:</label>
+    <input type="text" id="title" name="title" value="{{ confession.title }}" required>
+
+    <label for="description">Description:</label>
+    <input type="text" id="description" name="description" value="{{ confession.description }}" required>
+
+    <label for="confession">Main Content:</label>
+    <textarea id="confession" name="confession" rows="6" required>{{ confession.text }}</textarea>
+
+    <label>Current Files:</label>
+    {% if confession.files and confession.files|length > 0 %}
+        <ul>
+        {% for file in confession.files %}
+            <li>
+                <a class="file-link" href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">{{ file }}</a>
+                <label style="font-weight:400;">
+                    <input type="checkbox" name="remove_files" value="{{ file }}"> Remove
+                </label>
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No files uploaded.</p>
+    {% endif %}
+
+    <label for="files">Add New Files:</label>
+    <input type="file" id="files" name="files" multiple>
+
+    <button type="submit">Update Confession</button>
+</form>
+{% endblock %}

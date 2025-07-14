@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+    {% if notifications and notifications|length > 0 %}
+        <ul style="list-style:none;padding:0;max-width:500px;">
+        {% for note in notifications %}
+            <li style="background:#ffeeba;color:#856404;padding:12px 18px;margin-bottom:10px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+                {{ note }}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No notifications yet.</p>
+    {% endif %}
+{% endblock %}
