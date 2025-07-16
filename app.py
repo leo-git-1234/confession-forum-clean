@@ -41,7 +41,7 @@ import openai
 
 # --- AI Chatbot API Endpoint ---
 @app.route('/api/ai-chat', methods=['POST'])
-
+def ai_chat():
     # Allow both authenticated and unauthenticated users to use the chatbot
     data = request.get_json()
     user_message = data.get('message', '').strip()
