@@ -21,11 +21,10 @@ app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
 app.secret_key = 'supersecretkey'  # Needed for flash messages
 
+
 # --- OpenAI API Key Setup ---
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
-if not OPENAI_API_KEY:
-    # Fallback to hardcoded key (not recommended for production)
-    OPENAI_API_KEY = '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'
+
 
 
 
@@ -34,6 +33,9 @@ if not OPENAI_API_KEY:
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
 
 # Try to support both openai>=1.x and openai<1.0
+
+
+import openai
 
 
 # --- AI Chatbot API Endpoint ---
@@ -45,154 +47,25 @@ def ai_chat():
     if not user_message:
         return jsonify({'error': 'Empty message'}), 400
 
-    # --- Begin chatbot logic (formerly generate_ai_comment) ---
-    import string
-    greetings = [
-        r"^hi[.!]*$", r"^hello[.!]*$", r"^hey[.!]*$", r"^yo[.!]*$", r"^sup[.!]*$", r"^good (morning|afternoon|evening)[.!]*$"
-    ]
-    confession_text_clean = user_message.strip().lower()
-    # Greeting detection
-    for pattern in greetings:
-        if re.match(pattern, confession_text_clean):
-            return jsonify({'reply': random.choice([
-                "Hello! How can I support you today?",
-                "Hi there! I'm here to listen if you want to share anything.",
-                "Hey! Feel free to talk to me about anything on your mind.",
-                "Hello! I'm always here if you need someone to talk to.",
-                "Hi! What's on your mind today?"
-            ])})
+    if not OPENAI_API_KEY:
+        return jsonify({'error': 'OpenAI API key not set. Please set the OPENAI_API_KEY environment variable.'}), 500
 
-    # Question detection and expanded scenario handling
-    if confession_text_clean.endswith('?'):
-        question = confession_text_clean.translate(str.maketrans('', '', string.punctuation))
-        # Social/relationship scenarios
-        if 'block' in question or 'blocked' in question:
-            return jsonify({'reply': random.choice([
-                "Being blocked can feel really hurtful and confusing. Sometimes people need space, but it doesn't define your worth.",
-                "If someone blocked you, it's okay to feel sad or regretful. Give it time and focus on your own healing.",
-                "It's tough to be blocked by someone you care about. Try to respect their boundaries and take care of yourself."
-            ])})
-        if 'regret' in question or 'regretful' in question:
-            return jsonify({'reply': random.choice([
-                "Regret is a normal feeling. Try to learn from the experience and be gentle with yourself.",
-                "Everyone makes mistakes. What matters is how you move forward and grow from them.",
-                "If you're feeling regretful, consider what you can do differently next time. Self-forgiveness is important."
-            ])})
-        if 'breakup' in question or 'ex' in question or 'move on' in question:
-            return jsonify({'reply': random.choice([
-                "Breakups are hard. Allow yourself to grieve and lean on friends or family for support.",
-                "Moving on takes time. Focus on self-care and things that make you happy.",
-                "It's normal to miss your ex, but remember why things ended and prioritize your own well-being."
-            ])})
-        if 'family' in question or 'parent' in question or 'mom' in question or 'dad' in question or 'sibling' in question:
-            return jsonify({'reply': random.choice([
-                "Family relationships can be complicated. Open communication and setting boundaries can help.",
-                "If you're struggling with family, try to express your feelings calmly and seek support if needed.",
-                "Remember, it's okay to ask for help if family issues are overwhelming. You're not alone."
-            ])})
-        if 'bully' in question or 'bullied' in question or 'harass' in question:
-            return jsonify({'reply': random.choice([
-                "Bullying is never okay. If you feel safe, reach out to a trusted adult or authority for help.",
-                "You deserve respect. Don't hesitate to seek support if you're being bullied or harassed.",
-                "Remember, you're not alone. There are people who care and want to help you through this."
-            ])})
-        if 'selfesteem' in question or 'self esteem' in question or 'confidence' in question:
-            return jsonify({'reply': random.choice([
-                "Building self-esteem takes time. Celebrate your small wins and be kind to yourself.",
-                "Confidence grows with practice. Try to challenge negative thoughts and focus on your strengths.",
-                "Everyone has insecurities. Remember, you have unique qualities that make you valuable."
-            ])})
-        if 'stress' in question or 'anxious' in question or 'anxiety' in question:
-            return jsonify({'reply': random.choice([
-                "When you're feeling stressed, try taking a few deep breaths and give yourself a short break. Would you like some relaxation tips?",
-                "Managing anxiety can be tough. Sometimes writing down your thoughts or talking to a friend helps. Want more advice?",
-                "It's normal to feel anxious sometimes. Try to focus on what you can control and let go of what you can't."
-            ])})
-        if 'friend' in question or 'relationship' in question or 'crush' in question:
-            return jsonify({'reply': random.choice([
-                "Relationships can be complicated. Honest communication is often the best first step.",
-                "If you're having trouble with a friend, try to see things from their perspective and talk openly.",
-                "Crushes can be exciting and confusing! Be yourself and take things slow."
-            ])})
-        if 'sad' in question or 'depressed' in question or 'down' in question:
-            return jsonify({'reply': random.choice([
-                "If you're feeling down, remember it's okay to ask for help. You're not alone.",
-                "Sometimes talking to someone you trust can make a big difference when you're sad.",
-                "Try to do something small that you enjoy, even if it's just listening to music or going for a walk."
-            ])})
-        if 'motivation' in question or 'procrastinate' in question:
-            return jsonify({'reply': random.choice([
-                "Motivation can come and go. Setting small, achievable goals can help you get started.",
-                "If you're procrastinating, try breaking your task into tiny steps and reward yourself for progress.",
-                "Everyone struggles with motivation sometimes. Be kind to yourself and start with one small action."
-            ])})
-        if 'future' in question or 'goal' in question or 'dream' in question:
-            return jsonify({'reply': random.choice([
-                "Thinking about the future can be overwhelming. Focus on what you can do today to move closer to your goals.",
-                "Dreams are important! Break them into small steps and celebrate your progress.",
-                "It's okay if you don't have everything figured out. Take it one day at a time."
-            ])})
-        if 'health' in question or 'sick' in question or 'ill' in question:
-            return jsonify({'reply': random.choice([
-                "Health is important. Make sure to rest, eat well, and reach out to a doctor if needed.",
-                "If you're feeling unwell, don't hesitate to ask for help or support.",
-                "Taking care of your body and mind is a priority. Listen to what you need."
-            ])})
-        if 'money' in question or 'finance' in question or 'broke' in question:
-            return jsonify({'reply': random.choice([
-                "Money worries are common. Try to make a simple budget and reach out for advice if you need it.",
-                "Financial stress can be tough. Remember, your value isn't defined by your bank account.",
-                "If you're struggling financially, look for local resources or support groups that can help."
-            ])})
-        # General advice for questions
-        return jsonify({'reply': random.choice([
-            "That's a great question. Sometimes, reflecting on what you truly want can help you find the answer.",
-            "I'm here to help! Can you tell me a bit more about your situation?",
-            "There's no one-size-fits-all answer, but I'm happy to listen and offer advice if you'd like.",
-            "Life is full of ups and downs. Trust yourself to get through this.",
-            "If you want, I can help you brainstorm some next steps."
-        ])})
-
-    # Feeling/venting detection
-    feeling_keywords = [
-        'sad', 'depressed', 'anxious', 'anxiety', 'stress', 'angry', 'lonely', 'alone', 'tired', 'overwhelmed', 'hopeless', 'lost', 'scared', 'afraid', 'worry', 'worried', 'panic', 'cry', 'cried', 'crying'
-    ]
-    for word in feeling_keywords:
-        if word in confession_text_clean:
-            return jsonify({'reply': random.choice([
-                f"I'm sorry you're feeling {word}. Remember, it's okay to feel this way and you're not alone.",
-                f"It takes courage to talk about feeling {word}. If you want advice or just to vent, I'm here.",
-                f"When you feel {word}, try to take a break and do something kind for yourself."
-            ])})
-
-    # Advice for life/school/work
-    if any(x in confession_text_clean for x in ['school', 'exam', 'study', 'work', 'job', 'career', 'future']):
-        return jsonify({'reply': random.choice([
-            "Balancing everything can be tough. Remember to take breaks and ask for help if you need it.",
-            "It's okay to feel uncertain about the future. Focus on what you can do today, one step at a time.",
-            "Studying is important, but so is your well-being. Make sure to rest and take care of yourself."
-        ])})
-
-    # If user says thanks or expresses gratitude
-    if any(x in confession_text_clean for x in ['thank', 'thanks', 'appreciate', 'grateful']):
-        return jsonify({'reply': random.choice([
-            "You're very welcome! If you ever need to talk, I'm here.",
-            "No problem at all! Let me know if you have more on your mind.",
-            "I'm glad I could help. Take care!"
-        ])})
-
-    # General fallback: more variety, advice, and conversation
-    general_responses = [
-        "I'm here for you. If you want advice or just someone to listen, let me know!",
-        "Life can be challenging, but you're stronger than you think.",
-        "If you want to talk more about it, I'm all ears.",
-        "Sometimes sharing your thoughts is the first step to feeling better.",
-        "Would you like some advice or just to vent? Either way, I'm here.",
-        "Remember, every day is a new opportunity. What would you like to focus on today?",
-        "If you have a specific problem, feel free to ask and I'll do my best to help!",
-        "You matter, and your feelings are important."
-    ]
-    return jsonify({'reply': random.choice(general_responses)})
+    try:
+        openai.api_key = OPENAI_API_KEY
+        # Use ChatGPT (gpt-3.5-turbo or gpt-4o)
+        response = openai.ChatCompletion.create(
+            model=OPENAI_MODEL,
+            messages=[
+                {"role": "system", "content": "You are a supportive, empathetic, and helpful anonymous chatbot for a confession website. Give advice, encouragement, and listen to users' problems. Keep responses friendly and non-judgmental."},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=200,
+            temperature=0.8
+        )
+        ai_reply = response.choices[0].message['content'].strip()
+        return jsonify({'reply': ai_reply})
+    except Exception as e:
+        return jsonify({'error': f'AI Error: {str(e)}'}), 500
 
 
 def allowed_file(filename):
