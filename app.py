@@ -26,8 +26,6 @@ app.secret_key = 'supersecretkey'  # Needed for flash messages
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 
-
-
 # --- OpenAI Model Selection ---
 # You can try changing this to a model your account supports, e.g. 'gpt-3.5-turbo-0125', 'gpt-4o', etc.
 OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
