@@ -35,12 +35,13 @@ OPENAI_MODEL = os.environ.get('OPENAI_MODEL', 'gpt-3.5-turbo')
 # Try to support both openai>=1.x and openai<1.0
 
 
+
 import openai
 
 
 # --- AI Chatbot API Endpoint ---
 @app.route('/api/ai-chat', methods=['POST'])
-def ai_chat():
+
     # Allow both authenticated and unauthenticated users to use the chatbot
     data = request.get_json()
     user_message = data.get('message', '').strip()
@@ -51,9 +52,8 @@ def ai_chat():
         return jsonify({'error': 'OpenAI API key not set. Please set the OPENAI_API_KEY environment variable.'}), 500
 
     try:
-        openai.api_key = OPENAI_API_KEY
-        # Use ChatGPT (gpt-3.5-turbo or gpt-4o)
-        response = openai.ChatCompletion.create(
+        client = openai.OpenAI(api_key=OPENAI_API_KEY)
+        chat_response = client.chat.completions.create(
             model=OPENAI_MODEL,
             messages=[
                 {"role": "system", "content": "You are a supportive, empathetic, and helpful anonymous chatbot for a confession website. Give advice, encouragement, and listen to users' problems. Keep responses friendly and non-judgmental."},
@@ -62,7 +62,7 @@ def ai_chat():
             max_tokens=200,
             temperature=0.8
         )
-        ai_reply = response.choices[0].message['content'].strip()
+        ai_reply = chat_response.choices[0].message.content.strip()
         return jsonify({'reply': ai_reply})
     except Exception as e:
         return jsonify({'error': f'AI Error: {str(e)}'}), 500
