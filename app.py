@@ -1,3 +1,4 @@
+
 # Config variables (must be before any route functions)
 CONFESSIONS_FILE = 'confessions.json'
 USERS_FILE = 'users.json'
