@@ -1,0 +1,226 @@
+/* Improved card-based layout, color theme for like/heart buttons, avatar fallback, and pagination support. */
+body {
+    background: #f5f6fa;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.confessions-container {
+    max-width: 1100px;
+    margin: 40px auto;
+    background: none;
+    border-radius: 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+    padding: 18px 18px 12px 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    width: 100%;
+    min-height: 480px;
+    max-height: 900px;
+    overflow-y: auto;
+}
+.confession-card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.10);
+    padding: 24px 18px 18px 18px;
+    transition: box-shadow 0.2s;
+    position: relative;
+    width: 100%;
+    min-width: 0;
+    max-width: 420px;
+    min-height: 220px;
+    max-height: 480px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+@media (max-width: 900px) {
+    .confessions-container {
+        grid-template-columns: 1fr;
+        gap: 18px;
+        max-width: 100%;
+        padding: 0 8px;
+    }
+    .confession-card {
+        max-width: 100%;
+        min-width: 0;
+        padding: 18px 10px 12px 10px;
+    }
+}
+.confession-card:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.16);
+}
+.confession-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 14px;
+}
+.avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 18px;
+    background: #e1e1e1;
+    border: 2px solid #4f8cff;
+}
+.confession-meta {
+    display: flex;
+    flex-direction: column;
+}
+.username {
+    font-weight: 600;
+    color: #333;
+    font-size: 1.15em;
+}
+.time {
+    font-size: 0.98em;
+    color: #888;
+}
+.confession-content h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.22em;
+    color: #2d3a4a;
+}
+.confession-content .description {
+    font-size: 1.04em;
+    color: #555;
+    margin-bottom: 7px;
+}
+.confession-content .text {
+    font-size: 1.08em;
+    color: #222;
+    margin-bottom: 12px;
+}
+.files {
+    margin-top: 10px;
+    font-size: 1em;
+}
+.confession-actions {
+    margin-top: 12px;
+}
+.like-btn, .heart-btn {
+    background: #4f8cff;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 7px 18px;
+    margin-right: 10px;
+    font-size: 1.05em;
+    cursor: pointer;
+    transition: background 0.2s;
+    box-shadow: 0 1px 4px rgba(79,140,255,0.08);
+}
+.like-btn:hover {
+    background: #357ae8;
+}
+.heart-btn {
+    background: #ff6ec7;
+}
+.heart-btn:hover {
+    background: #e055b6;
+}
+.confession-comments {
+    margin-top: 20px;
+    background: #f8f9fb;
+    border-radius: 9px;
+    padding: 14px 12px;
+}
+.comment {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: #f8f9fb;
+    border-radius: 7px;
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 1em;
+    flex-wrap: wrap;
+    word-break: break-word;
+    white-space: pre-line;
+}
+.comment .avatar {
+    width: 32px;
+    height: 32px;
+    margin-right: 10px;
+    border: 2px solid #4f8cff;
+}
+.comment .username {
+    font-weight: 600;
+    color: #4f8cff;
+    margin-right: 8px;
+    font-size: 1em;
+}
+.comment .time {
+    color: #888;
+    font-size: 0.98em;
+    margin-right: 8px;
+}
+.comment .text {
+    color: #222;
+    font-size: 1em;
+    word-break: break-word;
+    white-space: pre-line;
+}
+.comment-form {
+    display: flex;
+    margin-top: 12px;
+}
+.comment-form input[type="text"] {
+    flex: 1;
+    padding: 7px 12px;
+    border-radius: 7px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+    margin-right: 10px;
+}
+.comment-form button {
+    background: #4f8cff;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 7px 18px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.comment-form button:hover {
+    background: #357ae8;
+}
+.pagination {
+    text-align: center;
+    margin: 28px 0;
+}
+.pagination button {
+    background: #4f8cff;
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    padding: 7px 18px;
+    font-size: 1em;
+    cursor: pointer;
+    margin: 0 6px;
+    transition: background 0.2s;
+}
+.pagination button:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+@media (max-width: 600px) {
+    .confessions-container {
+        padding: 0 4px;
+    }
+    .confession-card {
+        padding: 16px 4px 8px 4px;
+    }
+    .confession-header .avatar {
+        width: 36px;
+        height: 36px;
+    }
+}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Chat with {{ recipient }}</h2>
+<div style="margin-bottom:10px;">
+    {% if active %}
+        <span style="color:green;font-weight:bold;">● Active now</span>
+    {% elif last_seen %}
+        <span style="color:#888;">Last active: {{ last_seen }}</span>
+    {% else %}
+        <span style="color:#888;">No activity info</span>
+    {% endif %}
+</div>
+<div class="chat-window" style="max-width:600px;margin:auto;background:#f9f9f9;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);">
+    {% for msg in convo %}
+        <div style="margin-bottom:12px;">
+            {% if msg.sender == user_name %}
+                <span style="font-weight:bold;color:#007bff;">{{ msg.sender }}</span>
+            {% else %}
+                <span style="font-weight:bold;color:#333;">{{ msg.sender }}</span>
+            {% endif %}
+            <span style="font-size:0.9em;color:#888;">{{ msg.timestamp }}</span>
+            <div style="margin-top:4px;">{{ msg.text }}</div>
+            {% if msg.blocked %}<span style="color:red;font-size:0.9em;">Blocked</span>{% endif %}
+            {% if msg.reported %}<span style="color:orange;font-size:0.9em;">Reported</span>{% endif %}
+        </div>
+    {% endfor %}
+    {% if blocked %}
+        <div style="color:red;font-weight:bold;">You have blocked this user.</div>
+    {% elif reported %}
+        <div style="color:orange;font-weight:bold;">You have reported this user.</div>
+    {% else %}
+        <form method="post" style="margin-top:20px;display:flex;gap:10px;">
+            <input type="text" name="message" placeholder="Type your message..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #ccc;" required>
+            <button type="submit">Send</button>
+        </form>
+        <form method="post" style="margin-top:10px;display:inline;">
+            <button type="submit" name="block" value="1" style="background:#dc3545;color:#fff;">Block</button>
+            <button type="submit" name="report" value="1" style="background:#ffc107;color:#333;">Report</button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

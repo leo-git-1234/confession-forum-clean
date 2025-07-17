@@ -1,89 +1,115 @@
 {% extends "base.html" %}
 {% block content %}
-    <h2>All Confessions</h2>
-    {% for confession in confessions|reverse %}
-        <div class="confession">
-            <div class="username"><b>{{ confession.username }}</b></div>
-            <div><b>Title:</b> {{ confession.title|e }}</div>
-            <div><b>Description:</b> {{ confession.description|e }}</div>
-            <div><b>Main Content:</b><br>
-                <div style="margin-left:10px;">{{ confession.text|e }}</div>
-            </div>
-            {% if confession.files and confession.files|length > 0 %}
-                <div>Files:
-                    <ul>
-                    {% for file in confession.files %}
-                        <li><a class="file-link" href="{{ url_for('uploaded_file', filename=file) }}" target="_blank">{{ file }}</a></li>
-                    {% endfor %}
-                    </ul>
+<link rel="stylesheet" href="/static/confessions.css">
+<h2 style="margin-bottom:30px;">All Confessions</h2>
+<!-- Filter UI removed -->
+<div class="confessions-container" style="width:100%;max-width:100vw;box-sizing:border-box;">
+    {% for confession in confessions %}
+            <div class="confession-card">
+                <div class="confession-header">
+                    <div class="confession-meta">
+                        <span class="username">{{ confession.username }}
+                            {% set is_self = user_name == confession.username %}
+                            {% set follow_state = None %}
+                            {% if not is_self %}
+                                {% set follow_state = None %}
+                                {% for f in follows %}
+                                    {% if f.follower == user_name and f.followed == confession.username %}
+                                        {% if f.accepted %}
+                                            {% set follow_state = 'accepted' %}
+                                        {% else %}
+                                            {% set follow_state = 'pending' %}
+                                        {% endif %}
+                                    {% endif %}
+                                {% endfor %}
+                                {% if follow_state == 'accepted' %}
+                                    <form action="{{ url_for('start_dm', anon_username=confession.username) }}" method="post" style="display:inline; margin-left:8px;">
+                                        <button type="submit" class="message-btn" title="Send anonymous message">💬 Message</button>
+                                    </form>
+                                {% elif follow_state == 'pending' %}
+                                    <button class="follow-btn" style="margin-left:8px;" disabled>⏳ Pending</button>
+                                {% else %}
+                                    <form action="{{ url_for('follow_user', anon_username=confession.username) }}" method="post" style="display:inline; margin-left:8px;">
+                                        <button type="submit" class="follow-btn" title="Send follow request">➕ Follow</button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </span>
+                        <span class="time">{{ confession.time_posted | default('Unknown') }}</span>
+                    </div>
                 </div>
-            {% endif %}
-            <div>Likes: {{ confession.likes or 0 }}
-                <form method="POST" action="{{ url_for('like_confession', post_id=confession.id) }}" style="display:inline;">
-                    <button class="like-btn" type="submit">👍 Like</button>
-                </form>
+                <div class="confession-content">
+                    <div><b>Title:</b> {{ confession.title }}</div>
+                    <div><b>Description:</b> {{ confession.description }}</div>
+                    <div><b>Main Content:</b> {{ confession.text }}</div>
+                </div>
+                <div class="confession-actions">
+                    <form action="{{ url_for('like_confession', post_id=confession.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="like-btn">👍 Like ({{ confession.likes }})</button>
+                    </form>
+                    <form action="{{ url_for('heart_confession', post_id=confession.id) }}" method="post" style="display:inline;">
+                        <button type="submit" class="heart-btn">❤️ Heart ({{ confession.hearts }})</button>
+                    </form>
+                </div>
+                <div class="comments-section">
+                    <strong>Comments:</strong>
+                    <div class="comments-list">
+        {% set comment_count = confession.comments|length %}
+        {% for comment in confession.comments[:3] %}
+            {% set comment_id = confession.id ~ ':' ~ loop.index0 %}
+            <div class="comment" id="comment-{{ confession.id }}-{{ loop.index0 }}">
+                {% if comment_id in hidden_comments %}
+                    <form method="POST" action="{{ url_for('show_comment', post_id=confession.id, comment_idx=loop.index0) }}" style="display:inline;">
+                        <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Show</button>
+                    </form>
+                {% else %}
+                    <span class="comment-username" style="font-weight:bold;">{{ comment.username }}</span>
+                    <span class="comment-time" style="font-weight:bold;">{{ comment.time_posted }}</span>
+                    <div class="comment-text">{{ comment.text }}</div>
+                    <form method="POST" action="{{ url_for('hide_comment', post_id=confession.id, comment_idx=loop.index0) }}" style="display:inline;">
+                        <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Hide</button>
+                    </form>
+                {% endif %}
             </div>
-            <div>Hearts: {{ confession.hearts or 0 }}
-                <form method="POST" action="{{ url_for('heart_confession', post_id=confession.id) }}" style="display:inline;">
-                    <button class="heart-btn" type="submit">❤️ Heart</button>
-                </form>
-            </div>
-            <div>Comments:</div>
-            {% if confession.comments %}
-                {% for comment in confession.comments %}
-                    <div class="comment">- <b>{{ comment.username }}</b>: {{ comment.text|e }}</div>
-                    <!-- Replies and reply form removed: only top-level comments allowed -->
-<script>
-// Helper to save and restore scroll position
-function saveScroll() {
-    sessionStorage.setItem('scrollTop', window.scrollY);
-}
-function restoreScroll() {
-    const scrollTop = sessionStorage.getItem('scrollTop');
-    if (scrollTop) window.scrollTo(0, parseInt(scrollTop));
-}
-window.onload = restoreScroll;
-
-// AJAX form handler for like, heart, and comment forms (prevent multiple event listeners)
-document.addEventListener('DOMContentLoaded', function() {
-    function ajaxifyForms(selector) {
-        document.querySelectorAll(selector).forEach(form => {
-            // Remove any previous event listeners by cloning
-            const newForm = form.cloneNode(true);
-            form.parentNode.replaceChild(newForm, form);
-            newForm.addEventListener('submit', function(e) {
-                e.preventDefault();
-                saveScroll();
-                const formData = new FormData(newForm);
-                fetch(newForm.action, {
-                    method: newForm.method,
-                    body: formData,
-                    credentials: 'same-origin'
-                }).then(resp => {
-                    if (resp.redirected) {
-                        window.location.href = resp.url;
-                    } else {
-                        window.location.reload();
-                    }
-                });
-            });
-        });
-    }
-    ajaxifyForms('form.like-btn');
-    ajaxifyForms('form.heart-btn');
-    ajaxifyForms('form.comment-form');
-});
-</script>
-                {% endfor %}
-            {% else %}
-                <div class="comment">No comments yet.</div>
-            {% endif %}
-            <form class="comment-form" method="POST" action="{{ url_for('add_comment', post_id=confession.id) }}">
-                <input type="text" name="comment" placeholder="Add a comment..." required>
-                <button type="submit">Comment</button>
-            </form>
+        {% endfor %}
+                    </div>
+    {% if comment_count > 3 %}
+        <button class="see-more-btn" onclick="document.getElementById('extra-comments-{{ confession.id }}').style.display='block'; this.style.display='none';">See more comments ({{ comment_count - 3 }})</button>
+        <div class="extra-comments" id="extra-comments-{{ confession.id }}" style="display:none;">
+            {% for comment in confession.comments[3:] %}
+                {% set idx = loop.index0 + 3 %}
+                {% set comment_id = confession.id ~ ':' ~ idx %}
+                <div class="comment" id="comment-{{ confession.id }}-{{ idx }}">
+                    {% if comment_id in hidden_comments %}
+                        <form method="POST" action="{{ url_for('show_comment', post_id=confession.id, comment_idx=idx) }}" style="display:inline;">
+                            <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Show</button>
+                        </form>
+                    {% else %}
+                        <span class="comment-username" style="font-weight:bold;">{{ comment.username }}</span>
+                        <span class="comment-time" style="font-weight:bold;">{{ comment.time_posted }}</span>
+                        <div class="comment-text">{{ comment.text }}</div>
+                        <form method="POST" action="{{ url_for('hide_comment', post_id=confession.id, comment_idx=idx) }}" style="display:inline;">
+                            <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Hide</button>
+                        </form>
+                    {% endif %}
+                </div>
+            {% endfor %}
         </div>
-    {% else %}
-        <p>No confessions yet.</p>
-    {% endfor %}
+    {% endif %}
+                    <form action="{{ url_for('add_comment', post_id=confession.id) }}" method="post" class="comment-form">
+                        <input type="text" name="comment" placeholder="Add a comment..." required>
+                        <button type="submit">Comment</button>
+                    </form>
+                    <script>
+                        function hideComment(confessionId, commentIdx) {
+                            var commentDiv = document.getElementById('comment-' + confessionId + '-' + commentIdx);
+                            if (commentDiv) {
+                                commentDiv.style.display = 'none';
+                            }
+                        }
+                    </script>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 {% endblock %}
