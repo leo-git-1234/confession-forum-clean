@@ -1,14 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
-    {% if notifications and notifications|length > 0 %}
-        <ul style="list-style:none;padding:0;max-width:500px;">
-        {% for note in notifications %}
-            <li style="background:#ffeeba;color:#856404;padding:12px 18px;margin-bottom:10px;border-radius:6px;box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-                {{ note }}
+<h2 style="margin-bottom:24px;">Your Messages</h2>
+<div style="max-width:600px;margin:auto;">
+    {% if pending_requests %}
+        <h3 style="margin-bottom:12px;color:#d9534f;">Pending Follow Requests</h3>
+        <ul style="list-style:none;padding:0;">
+        {% for req in pending_requests %}
+            <li style="background:#fff3cd;color:#856404;padding:12px 16px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.07);display:flex;justify-content:space-between;align-items:center;">
+                <span><b>{{ req.follower }}</b> wants to follow you.</span>
+                <form action="{{ url_for('accept_follow', follower=req.follower, anon_username=user_name) }}" method="post" style="margin:0;">
+                    <button type="submit" style="background:#28a745;color:#fff;padding:6px 14px;border-radius:6px;border:none;font-weight:500;">Accept</button>
+                </form>
+            </li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+    <h3 style="margin-bottom:12px;">Direct Messages</h3>
+    {% if conversations %}
+        <ul style="list-style:none;padding:0;">
+        {% for other, convo in conversations.items() %}
+            <li style="background:#f4f8fb;color:#222;padding:14px 18px;margin-bottom:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.07);display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                    <span style="font-weight:bold;color:#007bff;">{{ other }}</span>
+                    <span style="font-size:0.95em;color:#888;">({{ convo|length }} messages)</span>
+                </div>
+                <a href="{{ url_for('chat', sender=user_name, recipient=other) }}" style="background:#007bff;color:#fff;padding:7px 16px;border-radius:6px;text-decoration:none;font-weight:500;">Open Chat</a>
             </li>
         {% endfor %}
         </ul>
     {% else %}
-        <p>No notifications yet.</p>
+        <p>No messages yet.</p>
     {% endif %}
+</div>
 {% endblock %}

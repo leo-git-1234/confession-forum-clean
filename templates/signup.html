@@ -9,9 +9,29 @@
         <label for="username">Username:</label>
         <input type="text" id="username" name="username" required>
         <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
+        <div style="position:relative;">
+            <input type="password" id="password" name="password" required style="width:100%;">
+            <span onclick="togglePassword('password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;">
+                <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </span>
+        </div>
         <button type="submit" style="width:100%;margin-top:10px;">Sign Up</button>
     </form>
+    <script>
+    function togglePassword(id, el) {
+        var input = document.getElementById(id);
+        var svg = el.querySelector('svg');
+        if (input.type === "password") {
+            input.type = "text";
+            // Eye-off icon
+            svg.innerHTML = '<path d="M17.94 17.94A10.94 10.94 0 0 1 12 20c-7 0-11-8-11-8a21.07 21.07 0 0 1 5.06-7.94M1 1l22 22" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></path><circle cx="12" cy="12" r="3" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"></circle>';
+        } else {
+            input.type = "password";
+            // Eye icon
+            svg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+        }
+    }
+    </script>
     <p style="margin-top:18px;">Already have an account? <a href="{{ url_for('index') }}">Login here</a></p>
 </div>
 {% endblock %}
