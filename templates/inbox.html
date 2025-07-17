@@ -2,6 +2,27 @@
 {% block content %}
 <h2 style="margin-bottom:24px;">Your Messages</h2>
 <div style="max-width:600px;margin:auto;">
+    <style>
+        @media (max-width: 700px) {
+            div[style*="max-width:600px"] {
+                max-width: 98vw !important;
+                padding: 8px !important;
+            }
+            button, a {
+                font-size: 0.95rem !important;
+                padding: 10px 0 !important;
+            }
+        }
+        @media (max-width: 480px) {
+            div[style*="max-width:600px"] {
+                padding: 4px !important;
+            }
+            button, a {
+                font-size: 0.92rem !important;
+                padding: 8px 0 !important;
+            }
+        }
+    </style>
     {% if pending_requests %}
         <h3 style="margin-bottom:12px;color:#d9534f;">Pending Follow Requests</h3>
         <ul style="list-style:none;padding:0;">

@@ -2,21 +2,29 @@
 {% block content %}
 <h2 style="margin-bottom:30px;">Post a Confession</h2>
 <form method="POST" enctype="multipart/form-data">
-    <label for="title">Title:</label>
-    <input type="text" id="title" name="title" placeholder="Title" required>
+    <label for="title" style="display:block;text-align:left;margin-bottom:6px;font-size:1rem;">Title:</label>
+    <input type="text" id="title" name="title" placeholder="Title" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;margin-bottom:12px;">
 
-    <label for="description">Description:</label>
-    <input type="text" id="description" name="description" placeholder="Short description" required>
+    <label for="description" style="display:block;text-align:left;margin-bottom:6px;font-size:1rem;">Description:</label>
+    <input type="text" id="description" name="description" placeholder="Short description" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;margin-bottom:12px;">
 
-    <label for="confession">Main Content:</label>
-    <textarea id="confession" name="confession" rows="6" placeholder="Write your confession..." required></textarea>
+    <label for="confession" style="display:block;text-align:left;margin-bottom:6px;font-size:1rem;">Main Content:</label>
+    <textarea id="confession" name="confession" rows="6" placeholder="Write your confession..." required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;margin-bottom:12px;resize:vertical;"></textarea>
 
-    <label for="files">Attach Files:</label>
-    <input type="file" id="files" name="files" multiple accept=".pdf,.doc,.docx,.txt">
+    <label for="files" style="display:block;text-align:left;margin-bottom:6px;font-size:1rem;">Attach Files:</label>
+    <input type="file" id="files" name="files" multiple accept=".pdf,.doc,.docx,.txt" style="width:100%;margin-bottom:12px;">
 
-    <button type="submit">Submit Confession</button>
+    <button type="submit" style="width:100%;padding:12px 0;font-size:1rem;border-radius:6px;">Submit Confession</button>
 </form>
 <div style="margin-top:20px;">
-    <a href="{{ url_for('confessions_page') }}" class="file-link">Back to All Confessions</a>
+    <a href="{{ url_for('confessions_page') }}" class="file-link" style="color:#007bff;">Back to All Confessions</a>
+    <style>
+        @media (max-width: 480px) {
+            input, textarea, button {
+                font-size: 0.95rem !important;
+                padding: 10px 0 !important;
+            }
+        }
+    </style>
 </div>
 {% endblock %}
