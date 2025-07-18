@@ -211,6 +211,7 @@
     <div class="container">
         {% block content %}{% endblock %}
         <!-- AI Chatbot Widget -->
+        {% if not hide_chatbot %}
         <div id="ai-chatbot" style="position:fixed;bottom:24px;right:24px;z-index:9999;width:340px;max-width:90vw;">
             <div id="chatbot-header" style="background:#007bff;color:#fff;padding:10px 16px;border-top-left-radius:10px;border-top-right-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.18);cursor:pointer;z-index:10001;border:2px solid #fff;">
                 🤖 Supportive AI Chatbot
@@ -224,6 +225,7 @@
                 </form>
             </div>
         </div>
+        {% endif %}
         <!-- Google Translate Widget -->
         <script type="text/javascript">
         function googleTranslateElementInit() {
