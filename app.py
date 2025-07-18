@@ -334,8 +334,10 @@ def index():
         password = request.form.get('password')
         if not username or not password:
             error = 'Please enter both username and password.'
-        elif username not in users or not check_password_hash(users[username]['password'], password):
-            error = 'Invalid username or password.'
+        elif username not in users:
+            error = 'Username does not exist.'
+        elif not check_password_hash(users[username]['password'], password):
+            error = 'Incorrect password.'
         else:
             session['user'] = {'username': username}
             return redirect(url_for('dashboard'))
@@ -355,6 +357,10 @@ def signup():
             error = 'Please enter both username and password.'
         elif username in users:
             error = 'Username already exists.'
+        elif any(u for u in users if u.lower() == username.lower()):
+            error = 'Username already exists (case-insensitive check).'
+        elif password == username:
+            error = 'Password cannot be the same as username.'
         else:
             users[username] = {'password': generate_password_hash(password)}
             save_users(users)

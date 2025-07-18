@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% set hide_chatbot = True %}
 {% block content %}
 <div style="max-width:400px;margin:60px auto 0 auto;background:#fff;padding:32px 28px 28px 28px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.10);text-align:center;">
     <h2 style="margin-bottom:24px;font-size:1.3rem;">Login</h2>
@@ -7,10 +8,10 @@
     {% endif %}
     <form method="POST">
         <label for="username" style="display:block;text-align:left;margin-bottom:6px;font-size:1rem;">Username:</label>
-        <input type="text" id="username" name="username" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;margin-bottom:12px;">
+        <input type="text" id="username" name="username" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;margin-bottom:12px;" value="">
         <label for="password" style="display:block;text-align:left;margin-bottom:6px;font-size:1rem;">Password:</label>
         <div style="position:relative;margin-bottom:12px;">
-            <input type="password" id="password" name="password" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;">
+            <input type="password" id="password" name="password" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;" value="">
             <span onclick="togglePassword('password', this)" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;">
                 <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#007bff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
             </span>
@@ -33,6 +34,13 @@
     }
     </script>
     <p style="margin-top:18px;font-size:1rem;">Don't have an account? <a href="{{ url_for('signup') }}" style="color:#007bff;">Sign up here</a></p>
+    <div id="google_translate_element" style="margin-top:24px;"></div>
+    <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({pageLanguage: 'en', includedLanguages: '', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+    }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
     <style>
         @media (max-width: 480px) {
             div[style*="max-width:400px"] {

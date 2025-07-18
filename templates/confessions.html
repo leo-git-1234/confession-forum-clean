@@ -56,44 +56,24 @@
                     <div class="comments-list">
         {% set comment_count = confession.comments|length %}
         {% for comment in confession.comments[:3] %}
-            {% set comment_id = confession.id ~ ':' ~ loop.index0 %}
             <div class="comment" id="comment-{{ confession.id }}-{{ loop.index0 }}">
-                {% if comment_id in hidden_comments %}
-                    <form method="POST" action="{{ url_for('show_comment', post_id=confession.id, comment_idx=loop.index0) }}" style="display:inline;">
-                        <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Show</button>
-                    </form>
-                {% else %}
-                    <span class="comment-username" style="font-weight:bold;">{{ comment.username }}</span>
-                    <span class="comment-time" style="font-weight:bold;">{{ comment.time_posted }}</span>
-                    <div class="comment-text">{{ comment.text }}</div>
-                    <form method="POST" action="{{ url_for('hide_comment', post_id=confession.id, comment_idx=loop.index0) }}" style="display:inline;">
-                        <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Hide</button>
-                    </form>
-                {% endif %}
+                <span class="comment-username" style="font-weight:bold;">{{ comment.username }}</span>
+                <span class="comment-time" style="font-weight:bold;">{{ comment.time_posted }}</span>
+                <div class="comment-text">{{ comment.text }}</div>
             </div>
         {% endfor %}
                     </div>
     {% if comment_count > 3 %}
-        <button class="see-more-btn" onclick="document.getElementById('extra-comments-{{ confession.id }}').style.display='block'; this.style.display='none';">See more comments ({{ comment_count - 3 }})</button>
+        <button class="see-more-btn" id="show-comments-btn-{{ confession.id }}" onclick="document.getElementById('extra-comments-{{ confession.id }}').style.display='block'; this.style.display='none';">Show Comments ({{ comment_count - 3 }})</button>
         <div class="extra-comments" id="extra-comments-{{ confession.id }}" style="display:none;">
             {% for comment in confession.comments[3:] %}
-                {% set idx = loop.index0 + 3 %}
-                {% set comment_id = confession.id ~ ':' ~ idx %}
-                <div class="comment" id="comment-{{ confession.id }}-{{ idx }}">
-                    {% if comment_id in hidden_comments %}
-                        <form method="POST" action="{{ url_for('show_comment', post_id=confession.id, comment_idx=idx) }}" style="display:inline;">
-                            <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Show</button>
-                        </form>
-                    {% else %}
-                        <span class="comment-username" style="font-weight:bold;">{{ comment.username }}</span>
-                        <span class="comment-time" style="font-weight:bold;">{{ comment.time_posted }}</span>
-                        <div class="comment-text">{{ comment.text }}</div>
-                        <form method="POST" action="{{ url_for('hide_comment', post_id=confession.id, comment_idx=idx) }}" style="display:inline;">
-                            <button type="submit" class="hide-comment-btn" style="margin-left:8px;">Hide</button>
-                        </form>
-                    {% endif %}
+                <div class="comment" id="comment-{{ confession.id }}-{{ loop.index0 + 3 }}">
+                    <span class="comment-username" style="font-weight:bold;">{{ comment.username }}</span>
+                    <span class="comment-time" style="font-weight:bold;">{{ comment.time_posted }}</span>
+                    <div class="comment-text">{{ comment.text }}</div>
                 </div>
             {% endfor %}
+            <button class="hide-comment-btn" id="hide-comments-btn-{{ confession.id }}" style="margin-top:12px;" onclick="document.getElementById('extra-comments-{{ confession.id }}').style.display='none'; document.getElementById('show-comments-btn-{{ confession.id }}').style.display='inline-block'; return false;">Hide Comments</button>
         </div>
     {% endif %}
                     <form action="{{ url_for('add_comment', post_id=confession.id) }}" method="post" class="comment-form">
