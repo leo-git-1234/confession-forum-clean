@@ -1,56 +1,67 @@
+{# Requests Tab (Pending Follow Requests) #}
 {% extends "base.html" %}
 {% block content %}
-<h2 style="margin-bottom:24px;">Your Messages</h2>
-<div style="max-width:600px;margin:auto;">
-    <style>
-        @media (max-width: 700px) {
-            div[style*="max-width:600px"] {
-                max-width: 98vw !important;
-                padding: 8px !important;
-            }
-            button, a {
-                font-size: 0.95rem !important;
-                padding: 10px 0 !important;
-            }
-        }
-        @media (max-width: 480px) {
-            div[style*="max-width:600px"] {
-                padding: 4px !important;
-            }
-            button, a {
-                font-size: 0.92rem !important;
-                padding: 8px 0 !important;
-            }
-        }
-    </style>
-    {% if pending_requests %}
-        <h3 style="margin-bottom:12px;color:#d9534f;">Pending Follow Requests</h3>
-        <ul style="list-style:none;padding:0;">
-        {% for req in pending_requests %}
-            <li style="background:#fff3cd;color:#856404;padding:12px 16px;margin-bottom:10px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.07);display:flex;justify-content:space-between;align-items:center;">
-                <span><b>{{ req.follower }}</b> wants to follow you.</span>
-                <form action="{{ url_for('accept_follow', follower=req.follower, anon_username=user_name) }}" method="post" style="margin:0;">
-                    <button type="submit" style="background:#28a745;color:#fff;padding:6px 14px;border-radius:6px;border:none;font-weight:500;">Accept</button>
-                </form>
-            </li>
-        {% endfor %}
-        </ul>
-    {% endif %}
-    <h3 style="margin-bottom:12px;">Direct Messages</h3>
-    {% if conversations %}
-        <ul style="list-style:none;padding:0;">
-        {% for other, convo in conversations.items() %}
-            <li style="background:#f4f8fb;color:#222;padding:14px 18px;margin-bottom:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.07);display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                    <span style="font-weight:bold;color:#007bff;">{{ other }}</span>
-                    <span style="font-size:0.95em;color:#888;">({{ convo|length }} messages)</span>
+<div style="min-height:100vh;display:flex;justify-content:center;align-items:center;background:#f7f7f7;">
+  <div class="inbox-card" style="width:100%;max-width:540px;height:760px;background:#fff;border-radius:18px;box-shadow:0 4px 16px rgba(0,0,0,0.10);display:flex;flex-direction:column;overflow:hidden;">
+    <div class="inbox-header" style="position:sticky;top:0;background:#fff;z-index:2;padding:18px 24px 12px 24px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:1.35em;font-weight:600;">Your Messages</span>
+      <span style="font-size:1.1em;color:#007bff;font-weight:500;">Inbox</span>
+    </div>
+    <div class="inbox-tabs" style="display:flex;justify-content:space-around;border-bottom:1px solid #eee;background:#fafbfc;">
+      <button style="flex:1;padding:12px 0;border:none;background:none;font-weight:500;color:#007bff;cursor:pointer;">DMs</button>
+    </div>
+    <div class="inbox-list" style="flex:1;overflow-y:auto;padding:0 0 0 0;background:#fff;">
+      {% if pending_requests and pending_requests|length > 0 %}
+        <div class="inbox-requests" style="padding:18px 24px 0 24px;">
+          <div style="font-size:1.1em;font-weight:600;color:#d9534f;margin-bottom:10px;">Pending Follow Requests</div>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            {% for req in pending_requests %}
+              <div class="request-card" style="background:#fff3cd;color:#856404;padding:14px 18px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-weight:500;">{{ req.follower_anon }}</span>
+                <div style="display:flex;gap:10px;">
+                  <form method="POST" action="{{ url_for('accept_follow', follower=req.follower, anon_username=req.anon) }}" style="display:inline;">
+                    <button type="submit" style="background:#28a745;color:#fff;padding:7px 18px;border-radius:6px;border:none;font-weight:600;">Accept</button>
+                  </form>
+                  <form method="POST" action="{{ url_for('decline_follow', follower=req.follower, anon_username=req.anon) }}" style="display:inline;">
+                    <button type="submit" style="background:#dc3545;color:#fff;padding:7px 18px;border-radius:6px;border:none;font-weight:600;">Decline</button>
+                  </form>
                 </div>
-                <a href="{{ url_for('chat', sender=user_name, recipient=other) }}" style="background:#007bff;color:#fff;padding:7px 16px;border-radius:6px;text-decoration:none;font-weight:500;">Open Chat</a>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+      <div style="padding:18px 24px 0 24px;">
+        <div style="font-size:1.1em;font-weight:500;color:#222;margin-bottom:10px;">Direct Messages</div>
+        {% if conversations %}
+          <ul style="list-style:none;padding:0;">
+          {% for anon_name, convo_obj in conversations.items() %}
+            <li style="background:#f4f8fb;color:#222;padding:14px 18px;margin-bottom:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.07);display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <span style="font-weight:bold;color:#007bff;">{{ anon_name }}</span>
+                <span style="font-size:0.95em;color:#888;">({{ convo_obj.convo|length }} messages)</span>
+              </div>
+              <a href="{{ url_for('chat', sender=user_name, recipient=convo_obj.real_user) }}" class="open-chat-btn" style="background:#007bff;color:#fff;padding:7px 16px;border-radius:6px;text-decoration:none;font-weight:500;">Open Chat</a>
             </li>
-        {% endfor %}
-        </ul>
-    {% else %}
-        <p>No messages yet.</p>
-    {% endif %}
+          {% endfor %}
+          </ul>
+        {% else %}
+          <p style="color:#888;text-align:center;margin-top:32px;">No messages yet.</p>
+        {% endif %}
+      </div>
+    </div>
+    <style>
+      @media (max-width: 900px) {
+        .inbox-card { max-width: 99vw !important; height: 98vh !important; border-radius: 12px !important; }
+        .inbox-header { padding: 12px 10px 8px 10px !important; }
+      }
+      @media (max-width: 480px) {
+        .inbox-card { border-radius: 0 !important; max-width: 100vw !important; height: 100vh !important; }
+        .inbox-header { padding: 8px 4px 6px 4px !important; }
+      }
+      .inbox-list::-webkit-scrollbar { width: 6px; background: #f7f7f7; }
+      .inbox-list::-webkit-scrollbar-thumb { background: #eee; border-radius: 6px; }
+    </style>
+  </div>
 </div>
 {% endblock %}

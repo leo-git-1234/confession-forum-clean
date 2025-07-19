@@ -11,28 +11,36 @@
         .container { max-width: 700px; margin: 40px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
         .container {
             max-width: 700px;
-            margin: 40px auto;
-            background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.10);
-            width: 95vw;
-            box-sizing: border-box;
-        }
-        /* Responsive Navbar */
-        .navbar {
-            flex-wrap: wrap;
-        }
-        .navbar > div {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-        }
         @media (max-width: 700px) {
             .container {
                 margin: 8px auto;
                 padding: 8px;
                 border-radius: 8px;
+            }
+            .main-content-wrapper {
+                max-width: 100%;
+                padding: 8px;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .welcome-banner {
+                font-size: 1em;
+                padding: 12px 4px;
+            }
+        }
+        @media (max-width: 480px) {
+            .container {
+                padding: 4px;
+                border-radius: 5px;
+            }
+            .main-content-wrapper {
+                padding: 4px;
+            }
+            .welcome-banner {
+                font-size: 0.95em;
+                padding: 8px 2px;
+            }
+        }
         /* Additional styles for welcome banner and main content */
         .welcome-banner {
             width: 100%;
@@ -53,52 +61,6 @@
             border-radius: 12px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.04);
         }
-        @media (max-width: 700px) {
-            .main-content-wrapper {
-                max-width: 100%;
-                padding: 8px;
-                border-radius: 0;
-                box-shadow: none;
-            }
-            .welcome-banner {
-                font-size: 1em;
-                padding: 12px 4px;
-            }
-        }
-        @media (max-width: 480px) {
-            .main-content-wrapper {
-                padding: 4px;
-            }
-            .welcome-banner {
-                font-size: 0.95em;
-                padding: 8px 2px;
-            }
-        }
-                width: 99vw;
-            }
-            .navbar {
-    <div class="welcome-banner">
-        <span>Welcome to the Anonymous Confession Forum! Share, support, and connect safely.</span>
-    </div>
-    <div class="main-content-wrapper">
-        <!-- Removed duplicate block content to fix TemplateAssertionError -->
-    </div>
-                align-items: flex-start;
-                gap: 6px;
-            }
-            .banner-title {
-                font-size: 1.2em;
-                padding: 10px 0 8px 0;
-            }
-        }
-        @media (max-width: 480px) {
-            .container {
-                padding: 4px;
-                border-radius: 5px;
-            }
-            .banner-title {
-                font-size: 1em;
-                padding: 6px 0 4px 0;
             }
         }
         h1, h2, h3 { color: #222; font-weight: 600; }
@@ -193,16 +155,18 @@
             <div id="google_translate_element" style="margin-left:8px;"></div>
             {% if user_name %}
                 <span>Welcome, {{ user_name }}</span>
-                <a href="{{ url_for('inbox') }}" title="Messages" style="font-size:1.1em;display:inline-flex;align-items:center;gap:4px;margin-left:12px;position:relative;">
-</html>
-                    <span style="font-size:1.3em;vertical-align:middle;position:relative;">
-                        <!-- Instagram DM icon (paper plane SVG) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="background:#007bff;border-radius:50%;padding:2px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        {% if pending_requests is defined and pending_requests|length > 0 %}
-                        <span style="position:absolute;top:-4px;right:-4px;background:#d9534f;color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:0.85em;font-weight:bold;box-shadow:0 1px 4px rgba(0,0,0,0.10);">{{ pending_requests|length }}</span>
-                        {% endif %}
-                    </span> Messages
-                </a>
+            <a href="{{ url_for('inbox') }}" title="Messages" style="font-size:1.1em;display:inline-flex;align-items:center;gap:4px;margin-left:12px;position:relative;">
+                <span style="font-size:1.3em;vertical-align:middle;position:relative;">
+                    <!-- Instagram DM icon (paper plane SVG) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="background:#007bff;border-radius:50%;padding:2px;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    {% if has_new_messages %}
+                        <span style="position:absolute;top:-4px;right:-4px;background:#d9534f;color:#fff;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:0.85em;font-weight:bold;box-shadow:0 1px 4px rgba(0,0,0,0.10);">!</span>
+                    {% endif %}
+                    {% if pending_requests is defined and pending_requests|length > 0 %}
+                        <span style="position:absolute;top:-4px;right:10px;background:#ffc107;color:#222;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:0.85em;font-weight:bold;box-shadow:0 1px 4px rgba(0,0,0,0.10);">{{ pending_requests|length }}</span>
+                    {% endif %}
+                </span> Messages
+            </a>
                 <a href="{{ url_for('logout') }}">Logout</a>
             {% endif %}
         </div>

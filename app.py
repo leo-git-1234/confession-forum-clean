@@ -1,3 +1,33 @@
+
+# --- Utility route to reset follows and DMs for testing ---
+import os
+import re
+import time
+import uuid
+import random
+import json
+from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session, jsonify
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+# SocketIO for real-time updates
+from flask_socketio import SocketIO, emit, join_room, leave_room
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
+app.secret_key = 'supersecretkey'  # Needed for flash messages
+socketio = SocketIO(app)
+
+
+# --- Socket.IO event for joining rooms ---
+def register_socketio_events():
+    @socketio.on('join')
+    def on_join(data):
+        room = data.get('room')
+        if room:
+            join_room(room)
+
+register_socketio_events()
 # Constants and config variables
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 USERS_FILE = 'users.json'
@@ -12,22 +42,6 @@ ANIMALS = [
 ]
 def generate_anonymous_username():
     return f"{random.choice(ADJECTIVES)} {random.choice(ANIMALS)}"
-
-
-import os
-import re
-import time
-import uuid
-import random
-import json
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session, jsonify
-from werkzeug.utils import secure_filename
-from werkzeug.security import generate_password_hash, check_password_hash
-
-app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = 'uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16 MB limit per file
-app.secret_key = 'supersecretkey'  # Needed for flash messages
 
 # --- User activity tracking ---
 USER_ACTIVITY_FILE = 'user_activity.json'
@@ -60,12 +74,43 @@ def follow_user(anon_username):
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
+    confessions = load_confessions()
+    real_user = None
+    for confession in confessions:
+        if confession.get('username') == anon_username:
+            real_user = confession.get('user')
+            break
+    if not real_user:
+        flash('Could not find user for this confession.')
+        print(f"[DEBUG] No real user found for anon_username={anon_username}")
+        return redirect(url_for('confessions_page'))
+    # Prevent self-follow
+    if username == real_user:
+        flash("You can't follow yourself.")
+        return redirect(url_for('confessions_page'))
+    print(f"[DEBUG] Follow request received: follower={username}, followed={real_user} (anon={anon_username})")
     follows = load_follows()
-    # Only allow one follow request per user per anon_username
-    if not any(f for f in follows if f['follower'] == username and f['followed'] == anon_username):
-        follows.append({'follower': username, 'followed': anon_username, 'accepted': False})
+    # Remove any previous requests for this user/real_user/anon_username
+    follows = [f for f in follows if not (f.get('follower') == username and f.get('followed') == real_user and f.get('anon') == anon_username)]
+    # Check if an accepted follow already exists (shouldn't, but just in case)
+    accepted_exists = any(f.get('follower') == username and f.get('followed') == real_user and f.get('anon') == anon_username and f.get('accepted') for f in follows)
+    # Get persistent anon_map for sender
+    anon_map_file = 'anon_map.json'
+    if os.path.exists(anon_map_file):
+        with open(anon_map_file, 'r', encoding='utf-8') as f:
+            anon_map = json.load(f)
+    else:
+        anon_map = {}
+    sender_anon = anon_map.get(username, anon_username)
+    if not accepted_exists:
+        follows.append({'follower': username, 'followed': real_user, 'anon': anon_username, 'accepted': False})
         save_follows(follows)
         flash('Follow request sent!')
+        # Emit real-time event to followed user, include sender's anonymous username
+        socketio.emit('follow_request', {'follower': username, 'anon': anon_username, 'follower_anon': sender_anon}, room=real_user)
+    else:
+        print(f"[DEBUG] Follow request already accepted: follower={username}, followed={real_user}, anon={anon_username}")
+        flash('You are already following this user!')
     return redirect(url_for('confessions_page'))
 
 @app.route('/accept_follow/<follower>/<anon_username>', methods=['POST'])
@@ -74,13 +119,45 @@ def accept_follow(follower, anon_username):
         return redirect(url_for('index'))
     username = session['user']['username']
     follows = load_follows()
+    updated = False
     for f in follows:
-        if f['follower'] == follower and f['followed'] == anon_username and not f['accepted']:
+        if f.get('follower') == follower and f.get('followed') == username and f.get('anon') == anon_username and not f.get('accepted'):
             f['accepted'] = True
-            save_follows(follows)
-            flash('Follow request accepted!')
+            updated = True
             break
-    return redirect(url_for('confessions_page'))
+    if updated:
+        save_follows(follows)
+        flash('Follow request accepted!')
+        # Automatically create a DM conversation entry so chat appears in inbox for both users
+        dms = load_dms()
+        from datetime import datetime
+        now = datetime.now()
+        timestamp = now.strftime('%B %d, %Y, %I:%M %p')
+        # Create chat for both directions if not present
+        if not any((dm['sender'] == username and dm['recipient'] == follower) or (dm['sender'] == follower and dm['recipient'] == username) for dm in dms):
+            dms.append({'sender': username, 'recipient': follower, 'timestamp': timestamp, 'text': '', 'read': True, 'system': True})
+            dms.append({'sender': follower, 'recipient': username, 'timestamp': timestamp, 'text': '', 'read': True, 'system': True})
+            save_dms(dms)
+        # Emit real-time event to all users (broadcast by default)
+        socketio.emit('follow_accepted', {'followed': username, 'anon': anon_username})
+        return redirect(url_for('inbox'))
+    else:
+        flash('No pending follow request found.')
+        return redirect(url_for('inbox'))
+
+@app.route('/decline_follow/<follower>/<anon_username>', methods=['POST'])
+def decline_follow(follower, anon_username):
+    if 'user' not in session:
+        return redirect(url_for('index'))
+    username = session['user']['username']
+    follows = load_follows()
+    # Remove the pending follow request for this anon_username
+    new_follows = [f for f in follows if not (f.get('follower') == follower and f.get('followed') == username and not f.get('accepted') and f.get('anon') == anon_username)]
+    save_follows(new_follows)
+    flash('Follow request declined.')
+    # Emit real-time event to follower
+    socketio.emit('follow_declined', {'followed': username, 'anon': anon_username}, room=follower)
+    return redirect(url_for('inbox'))
 
 @app.route('/start_dm/<anon_username>', methods=['POST'])
 def start_dm(anon_username):
@@ -101,31 +178,95 @@ def inbox():
     username = session['user']['username']
     dms = load_dms()
     follows = load_follows()
+    # Reset and unify inbox tab logic
     # Pending follow requests: where user is the target and not accepted
-    pending_requests = [f for f in follows if f['followed'] == username and not f['accepted']]
-    # Accepted follows: where user is follower or followed and accepted
-    accepted_follows = [f for f in follows if (f['follower'] == username or f['followed'] == username) and f['accepted']]
-    # Only show DM conversations for accepted follows
-    allowed_parties = set()
-    for f in accepted_follows:
-        if f['follower'] == username:
-            allowed_parties.add(f['followed'])
-        elif f['followed'] == username:
-            allowed_parties.add(f['follower'])
-    # Group DM conversations by other party
+    # Use persistent anon_map for all users
+    anon_map_file = 'anon_map.json'
+    if os.path.exists(anon_map_file):
+        with open(anon_map_file, 'r', encoding='utf-8') as f:
+            anon_map = json.load(f)
+    else:
+        anon_map = {}
+    # Attach sender's anonymous username to each pending request
+    pending_requests = []
+    for f in follows:
+        if f.get('followed') == username and not f.get('accepted'):
+            sender_anon = anon_map.get(f.get('follower'), f.get('anon'))
+            req = f.copy()
+            req['follower_anon'] = sender_anon
+            pending_requests.append(req)
+    # Accepted follows: all users with accepted follows (either direction)
+    accepted_users = set()
+    for f in follows:
+        if f.get('accepted'):
+            accepted_users.add(f.get('follower'))
+            accepted_users.add(f.get('followed'))
+    # Group DM conversations by all accepted users except self
+    confessions = load_confessions()
+    # Use persistent anon_map for all users
+    anon_map_file = 'anon_map.json'
+    if os.path.exists(anon_map_file):
+        with open(anon_map_file, 'r', encoding='utf-8') as f:
+            anon_map = json.load(f)
+    else:
+        anon_map = {}
     conversations = {}
-    for party in allowed_parties:
-        convo = [dm for dm in dms if (dm['sender'] == username and dm['recipient'] == party) or (dm['recipient'] == username and dm['sender'] == party)]
+    for party in accepted_users:
+        if party == username:
+            continue
+        convo = [dm for dm in dms if (dm.get('sender') == username and dm.get('recipient') == party) or (dm.get('recipient') == username and dm.get('sender') == party)]
         if convo:
-            conversations[party] = convo
-    return render_template('inbox.html', conversations=conversations, pending_requests=pending_requests, user_name=username)
+            anon_party = anon_map.get(party, party)
+            conversations[anon_party] = {"convo": convo, "real_user": party}
+    # Notification: check for unread messages
+    has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
+    return render_template('inbox.html', conversations=conversations, pending_requests=pending_requests, user_name=username, has_new_messages=has_new_messages)
 
 @app.route('/chat/<sender>/<recipient>', methods=['GET', 'POST'])
 def chat(sender, recipient):
     if 'user' not in session:
         return redirect(url_for('index'))
     dms = load_dms()
-    convo = [dm for dm in dms if (dm['sender'] == sender and dm['recipient'] == recipient) or (dm['sender'] == recipient and dm['recipient'] == sender)]
+    # Always show only anonymous usernames for both sender and recipient
+    confessions = load_confessions()
+    # Persistent anonymous username mapping for all users
+    anon_map_file = 'anon_map.json'
+    if os.path.exists(anon_map_file):
+        with open(anon_map_file, 'r', encoding='utf-8') as f:
+            anon_map = json.load(f)
+    else:
+        anon_map = {}
+    # Ensure every user in chat has an anonymous username
+    for user in [sender, recipient]:
+        if user not in anon_map:
+            # Try to get from confession
+            confession_anon = next((c.get('username') for c in confessions if c.get('user') == user), None)
+            if confession_anon:
+                anon_map[user] = confession_anon
+            else:
+                anon_map[user] = generate_anonymous_username()
+    # Persist anon_map
+    with open(anon_map_file, 'w', encoding='utf-8') as f:
+        json.dump(anon_map, f, indent=2)
+    sender_anon = anon_map.get(sender, sender)
+    recipient_anon = anon_map.get(recipient, recipient)
+    # Replace all real usernames in convo with anonymous names for rendering
+    convo = []
+    for dm in dms:
+        if (dm['sender'] == sender and dm['recipient'] == recipient) or (dm['sender'] == recipient and dm['recipient'] == sender):
+            dm_copy = dm.copy()
+            if dm['sender'] == sender:
+                dm_copy['sender'] = 'You'
+                dm_copy['recipient'] = recipient_anon
+            else:
+                dm_copy['sender'] = recipient_anon
+                dm_copy['recipient'] = 'You'
+            convo.append(dm_copy)
+    # Mark messages as read for the current user
+    for dm in dms:
+        if dm['recipient'] == sender and dm['sender'] == recipient and not dm.get('read'):
+            dm['read'] = True
+    save_dms(dms)
     blocked = any(dm.get('blocked') for dm in convo if dm.get('blocked_by') == sender)
     reported = any(dm.get('reported') for dm in convo if dm.get('reported_by') == sender)
     # Active status logic
@@ -152,14 +293,43 @@ def chat(sender, recipient):
             return redirect(url_for('inbox'))
         else:
             text = request.form.get('message')
-            if text and not blocked:
+            files = request.files.getlist('files') if 'files' in request.files else []
+            file_links = []
+            if files:
+                for file in files:
+                    if file and allowed_file(file.filename):
+                        ext = file.filename.rsplit('.', 1)[1].lower()
+                        filename = f"{uuid.uuid4().hex}.{ext}"
+                        filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                        file.save(filepath)
+                        file_links.append(filename)
+            if (text or file_links) and not blocked:
                 from datetime import datetime
                 now = datetime.now()
                 timestamp = now.strftime('%B %d, %Y, %I:%M %p')
-                dms.append({'sender': sender, 'recipient': recipient, 'timestamp': timestamp, 'text': text})
+                dms.append({'sender': sender, 'recipient': recipient, 'timestamp': timestamp, 'text': text, 'files': file_links, 'read': False})
                 save_dms(dms)
+                # Emit real-time event to recipient
+                socketio.emit('new_message', {'sender': sender_anon, 'recipient': recipient_anon, 'text': text, 'files': file_links, 'timestamp': timestamp}, room=recipient)
                 return redirect(url_for('chat', sender=sender, recipient=recipient))
-    return render_template('chat.html', sender=sender, recipient=recipient, convo=convo, blocked=blocked, reported=reported, user_name=sender, active=active, last_seen=last_seen_str)
+    # Unify notification badge logic for all pages
+    follows = load_follows()
+    dms = load_dms()
+    has_new_messages = any(dm for dm in dms if dm.get('recipient') == sender and not dm.get('read'))
+    pending_requests = [f for f in follows if f.get('followed') == sender and not f.get('accepted')]
+    return render_template(
+        'chat.html',
+        sender=sender_anon,
+        recipient=recipient_anon,
+        convo=convo,
+        blocked=blocked,
+        reported=reported,
+        user_name=sender,  # Pass real username for welcome
+        active=active,
+        last_seen=last_seen_str,
+        has_new_messages=has_new_messages,
+        pending_requests=pending_requests
+    )
 
 # DM and Follow storage files
 DM_FILE = 'dms.json'
@@ -226,27 +396,7 @@ def api_ai_chat():
     ai_reply = generate_ai_response(user_message)
     return jsonify({'response': ai_reply})
 
-# ...existing code...
-
-
-# ...existing code...
-
-
-
-
-
-
-# ...existing code...
-
-# Place DM-related code after config variables and helper functions, before route definitions
-
-
-# ...existing code...
-
-
-
-
-
+# Place DM-related code after config variables and helper functions
 
 
 def allowed_file(filename):
@@ -328,6 +478,14 @@ def index():
     if 'user' in session:
         return redirect(url_for('dashboard'))
     error = None
+    has_new_messages = False
+    pending_requests = []
+    if 'user' in session:
+        username = session['user']['username']
+        dms = load_dms()
+        follows = load_follows()
+        has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
+        pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
     if request.method == 'POST':
         users = load_users()
         username = request.form.get('username')
@@ -341,7 +499,7 @@ def index():
         else:
             session['user'] = {'username': username}
             return redirect(url_for('dashboard'))
-    return render_template('login.html', error=error, hide_navbar=True)
+    return render_template('login.html', error=error, hide_navbar=True, has_new_messages=has_new_messages, pending_requests=pending_requests)
 
 # Signup page
 @app.route('/signup', methods=['GET', 'POST'])
@@ -349,6 +507,14 @@ def signup():
     if 'user' in session:
         return redirect(url_for('dashboard'))
     error = None
+    has_new_messages = False
+    pending_requests = []
+    if 'user' in session:
+        username = session['user']['username']
+        dms = load_dms()
+        follows = load_follows()
+        has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
+        pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
     if request.method == 'POST':
         users = load_users()
         username = request.form.get('username')
@@ -366,7 +532,7 @@ def signup():
             save_users(users)
             flash('Account created! Please log in.')
             return redirect(url_for('index'))
-    return render_template('signup.html', error=error, hide_navbar=True)
+    return render_template('signup.html', error=error, hide_navbar=True, has_new_messages=has_new_messages, pending_requests=pending_requests)
 
 @app.route('/dashboard')
 def dashboard():
@@ -432,7 +598,12 @@ def home():
             save_confessions(confessions)
             flash('Confession submitted!')
             return redirect(url_for('confessions_page'))
-    return render_template('index.html', confessions=[])
+    # Pass inbox notification context
+    follows = load_follows()
+    dms = load_dms()
+    has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
+    pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
+    return render_template('index.html', confessions=[], has_new_messages=has_new_messages, pending_requests=pending_requests)
 
 @app.route('/comment/<post_id>', methods=['POST'])
 def add_comment(post_id):
@@ -478,12 +649,44 @@ def confessions_page():
     sorted_confessions = list(reversed(confessions))
     # Compute hidden comments for this user
     hidden_comments = get_hidden_comments(username)
+    # Notification: check for unread messages
+    dms = load_dms()
+    has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
+    # Reset follow status logic for confessions
+    follow_status_map = {}
+    # Build sets for accepted and pending users only
+    accepted_users = set()
+    pending_users = set()
+    for f in follows:
+        if f.get('accepted'):
+            accepted_users.add(f.get('follower'))
+            accepted_users.add(f.get('followed'))
+        else:
+            pending_users.add(f.get('follower'))
+            pending_users.add(f.get('followed'))
+    # For each confession, assign status based on real_user
+    for confession in sorted_confessions:
+        real_user = confession.get('user')
+        if real_user == username:
+            status = None
+        elif real_user in accepted_users:
+            status = 'accepted'
+        elif real_user in pending_users:
+            status = 'pending'
+        else:
+            status = None
+        follow_status_map[confession.get('username')] = status
+    # Also pass pending_requests for inbox icon
+    pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
     return render_template(
         'confessions.html',
         user_name=username,
         confessions=sorted_confessions,
         follows=follows,
-        hidden_comments=hidden_comments
+        hidden_comments=hidden_comments,
+        has_new_messages=has_new_messages,
+        follow_status_map=follow_status_map,
+        pending_requests=pending_requests
     )
 
 @app.route('/post', methods=['GET', 'POST'])
@@ -532,7 +735,12 @@ def post_confession():
             save_confessions(confessions)
             flash('Confession submitted!')
             return redirect(url_for('confessions_page'))
-    return render_template('post.html', user_name=username)
+    # Pass inbox notification context
+    follows = load_follows()
+    dms = load_dms()
+    has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
+    pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
+    return render_template('post.html', user_name=username, has_new_messages=has_new_messages, pending_requests=pending_requests)
 
 
 @app.route('/like/<post_id>', methods=['POST'])
@@ -602,7 +810,12 @@ def my_confessions():
         with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
             confessions = json.load(f)
     user_confessions = [c for c in confessions if c.get('user') == username]
-    return render_template('my_confessions.html', confessions=user_confessions, user_name=username)
+    # Pass inbox notification context
+    follows = load_follows()
+    dms = load_dms()
+    has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
+    pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
+    return render_template('my_confessions.html', confessions=user_confessions, user_name=username, has_new_messages=has_new_messages, pending_requests=pending_requests)
 
 # Route to edit a confession
 @app.route('/edit_confession/<post_id>', methods=['GET', 'POST'])
@@ -683,6 +896,13 @@ if __name__ == '__main__':
         with open(USERS_FILE, 'w', encoding='utf-8') as f:
             json.dump({}, f)
 
-    app.run(host='127.0.0.1', port=5000, debug=True, use_reloader=False)
+    # Reset DM and follow data files for a clean start
+    DM_FILE = 'dms.json'
+    FOLLOWS_FILE = 'follows.json'
+    with open(DM_FILE, 'w', encoding='utf-8') as f:
+        json.dump([], f)
+    with open(FOLLOWS_FILE, 'w', encoding='utf-8') as f:
+        json.dump([], f)
+    socketio.run(app, host='127.0.0.1', port=5000, debug=True)
 
 

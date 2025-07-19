@@ -1,0 +1,37 @@
+{# Accept/Decline buttons for pending requests #}
+{% if pending_requests %}
+    <h3>Pending Follow Requests</h3>
+    <ul>
+    {% for req in pending_requests %}
+        <li>
+            {{ req.follower }} wants to follow you (as {{ req.anon }})
+            <form method="POST" action="{{ url_for('accept_follow', follower=req.follower, anon_username=req.anon) }}" style="display:inline;">
+                <button type="submit" class="btn btn-success btn-sm">Accept</button>
+            </form>
+            <form method="POST" action="{{ url_for('decline_follow', follower=req.follower, anon_username=req.anon) }}" style="display:inline;">
+                <button type="submit" class="btn btn-danger btn-sm">Decline</button>
+            </form>
+        </li>
+    {% endfor %}
+    </ul>
+{% endif %}
+
+{# Show DM conversations for accepted follows #}
+{% if conversations %}
+    <h3>Chats</h3>
+    <ul>
+    {% for party, convo in conversations.items() %}
+        <li>
+            <a href="{{ url_for('chat', sender=user_name, recipient=party) }}">Chat with {{ party }}</a>
+            <form method="POST" action="{{ url_for('chat', sender=user_name, recipient=party) }}" style="display:inline;">
+                <button type="submit" class="btn btn-secondary btn-sm">Open</button>
+            </form>
+            <form method="POST" action="#" style="display:inline;">
+                <button type="button" class="btn btn-outline-secondary btn-sm" onclick="this.parentElement.parentElement.style.display='none'">Close</button>
+            </form>
+        </li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No chats yet.</p>
+{% endif %}

@@ -8,33 +8,23 @@
             <div class="confession-card">
                 <div class="confession-header">
                     <div class="confession-meta">
-                        <span class="username">{{ confession.username }}
-                            {% set is_self = user_name == confession.username %}
-                            {% set follow_state = None %}
-                            {% if not is_self %}
-                                {% set follow_state = None %}
-                                {% for f in follows %}
-                                    {% if f.follower == user_name and f.followed == confession.username %}
-                                        {% if f.accepted %}
-                                            {% set follow_state = 'accepted' %}
-                                        {% else %}
-                                            {% set follow_state = 'pending' %}
-                                        {% endif %}
-                                    {% endif %}
-                                {% endfor %}
-                                {% if follow_state == 'accepted' %}
-                                    <form action="{{ url_for('start_dm', anon_username=confession.username) }}" method="post" style="display:inline; margin-left:8px;">
-                                        <button type="submit" class="message-btn" title="Send anonymous message">💬 Message</button>
-                                    </form>
-                                {% elif follow_state == 'pending' %}
-                                    <button class="follow-btn" style="margin-left:8px;" disabled>⏳ Pending</button>
-                                {% else %}
-                                    <form action="{{ url_for('follow_user', anon_username=confession.username) }}" method="post" style="display:inline; margin-left:8px;">
-                                        <button type="submit" class="follow-btn" title="Send follow request">➕ Follow</button>
-                                    </form>
-                                {% endif %}
+                        <span class="username">{{ confession.username }}</span>
+                        {% set is_self = user_name == confession.username %}
+                        {% if not is_self %}
+                            {% set real_user = confession.user %}
+                            {% set status = follow_status_map.get(confession.username) %}
+                            <div style="margin-top:4px;">
+                            {% if status == 'accepted' %}
+                                <a href="{{ url_for('chat', sender=user_name, recipient=real_user) }}" class="message-btn" style="background:#b3e0ff;color:#222;padding:7px 16px;border-radius:6px;text-decoration:none;font-weight:500;display:inline-block;">Message</a>
+                            {% elif status == 'pending' %}
+                                <button class="pending-btn" style="background:#ffc107;color:#333;padding:7px 16px;border-radius:6px;font-weight:500;display:inline-block;" disabled>Pending</button>
+                            {% else %}
+                                <form action="{{ url_for('follow_user', anon_username=confession.username) }}" method="post" style="display:inline; margin-left:8px;">
+                                    <button type="submit" class="follow-btn" title="Send follow request">➕ Follow</button>
+                                </form>
                             {% endif %}
-                        </span>
+                            </div>
+                        {% endif %}
                         <span class="time">{{ confession.time_posted | default('Unknown') }}</span>
                     </div>
                 </div>
@@ -93,3 +83,6 @@
         {% endfor %}
     </div>
 {% endblock %}
+
+{# Socket.IO client for real-time updates #}
+{% include 'socketio_snippet.html' %}
