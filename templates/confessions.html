@@ -10,10 +10,10 @@
                 <div class="confession-header">
                     <div class="confession-meta">
                         <span class="username">{{ confession.username }}</span>
-                        {% set is_self = user_name == confession.username %}
+                        {% set is_self = user_name == confession.user %}
                         {% if not is_self %}
                             {% set real_user = confession.user %}
-                            {% set status = follow_status_map.get(confession.username) %}
+                            {% set status = follow_status_map.get(confession.user) %}
                             <div style="margin-top:4px;">
                             {% if status == 'accepted' %}
                                 <a href="{{ url_for('chat', sender=user_name, recipient=real_user) }}" class="message-btn" style="background:#b3e0ff;color:#222;padding:7px 16px;border-radius:6px;text-decoration:none;font-weight:500;display:inline-block;">Message</a>
