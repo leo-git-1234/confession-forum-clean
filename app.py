@@ -7,6 +7,7 @@ import time
 import uuid
 import random
 import json
+import sqlite3
 from flask import Flask, render_template, request, redirect, url_for, send_from_directory, flash, session, jsonify
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -29,10 +30,237 @@ def register_socketio_events():
             join_room(room)
 
 register_socketio_events()
-# Constants and config variables
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 USERS_FILE = 'users.json'
 CONFESSIONS_FILE = 'confessions.json'
+DB_FILE = 'confessions.db'
+
+# --- SQLite setup ---
+def get_db():
+    conn = sqlite3.connect(DB_FILE)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS confessions (
+        id TEXT PRIMARY KEY,
+        username TEXT,
+        user TEXT,
+        title TEXT,
+        description TEXT,
+        text TEXT,
+        files TEXT,
+        likes INTEGER,
+        hearts INTEGER,
+        time_posted TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        confession_id TEXT,
+        username TEXT,
+        avatar TEXT,
+        text TEXT,
+        time_posted TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+        username TEXT PRIMARY KEY,
+        password TEXT,
+        hidden_comments TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS dms (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        sender TEXT,
+        recipient TEXT,
+        timestamp TEXT,
+        text TEXT,
+        files TEXT,
+        read INTEGER,
+        system INTEGER,
+        blocked INTEGER,
+        blocked_by TEXT,
+        reported INTEGER,
+        reported_by TEXT
+    )''')
+    c.execute('''CREATE TABLE IF NOT EXISTS follows (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        follower TEXT,
+        followed TEXT,
+        anon TEXT,
+        accepted INTEGER
+    )''')
+    conn.commit()
+    conn.close()
+# --- Helper functions for users ---
+def db_get_users():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM users')
+    users = c.fetchall()
+    result = {}
+    for user in users:
+        hidden = json.loads(user['hidden_comments']) if user['hidden_comments'] else []
+        result[user['username']] = {
+            'password': user['password'],
+            'hidden_comments': hidden
+        }
+    conn.close()
+    return result
+
+def db_add_user(username, password):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('INSERT INTO users (username, password, hidden_comments) VALUES (?, ?, ?)', (username, password, json.dumps([])))
+    conn.commit()
+    conn.close()
+
+def db_update_user_hidden(username, hidden_comments):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('UPDATE users SET hidden_comments = ? WHERE username = ?', (json.dumps(list(hidden_comments)), username))
+    conn.commit()
+    conn.close()
+
+# --- Helper functions for DMs ---
+def db_get_dms():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM dms')
+    dms = c.fetchall()
+    result = []
+    for dm in dms:
+        files = json.loads(dm['files']) if dm['files'] else []
+        result.append({
+            'sender': dm['sender'],
+            'recipient': dm['recipient'],
+            'timestamp': dm['timestamp'],
+            'text': dm['text'],
+            'files': files,
+            'read': bool(dm['read']),
+            'system': bool(dm['system']),
+            'blocked': bool(dm['blocked']),
+            'blocked_by': dm['blocked_by'],
+            'reported': bool(dm['reported']),
+            'reported_by': dm['reported_by']
+        })
+    conn.close()
+    return result
+
+def db_add_dm(dm):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''INSERT INTO dms (sender, recipient, timestamp, text, files, read, system, blocked, blocked_by, reported, reported_by)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+        dm['sender'], dm['recipient'], dm['timestamp'], dm['text'], json.dumps(dm.get('files', [])),
+        int(dm.get('read', False)), int(dm.get('system', False)), int(dm.get('blocked', False)),
+        dm.get('blocked_by'), int(dm.get('reported', False)), dm.get('reported_by')
+    ))
+    conn.commit()
+    conn.close()
+
+# --- Helper functions for follows ---
+def db_get_follows():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM follows')
+    follows = c.fetchall()
+    result = []
+    for f in follows:
+        result.append({
+            'follower': f['follower'],
+            'followed': f['followed'],
+            'anon': f['anon'],
+            'accepted': bool(f['accepted'])
+        })
+    conn.close()
+    return result
+
+def db_add_follow(follow):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('INSERT INTO follows (follower, followed, anon, accepted) VALUES (?, ?, ?, ?)', (
+        follow['follower'], follow['followed'], follow['anon'], int(follow.get('accepted', False))
+    ))
+    conn.commit()
+    conn.close()
+
+# --- Helper functions for confessions ---
+def db_get_confessions():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM confessions ORDER BY rowid DESC')
+    confs = c.fetchall()
+    result = []
+    for conf in confs:
+        files = json.loads(conf['files']) if conf['files'] else []
+        comments = db_get_comments(conf['id'])
+        result.append({
+            'id': conf['id'],
+            'username': conf['username'],
+            'user': conf['user'],
+            'title': conf['title'],
+            'description': conf['description'],
+            'text': conf['text'],
+            'files': files,
+            'comments': comments,
+            'likes': conf['likes'],
+            'hearts': conf['hearts'],
+            'time_posted': conf['time_posted']
+        })
+    conn.close()
+    return result
+
+def db_add_confession(conf):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''INSERT INTO confessions (id, username, user, title, description, text, files, likes, hearts, time_posted)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
+        conf['id'], conf['username'], conf['user'], conf['title'], conf['description'], conf['text'],
+        json.dumps(conf['files']), conf.get('likes', 0), conf.get('hearts', 0), conf['time_posted']
+    ))
+    conn.commit()
+    conn.close()
+
+def db_add_comment(confession_id, comment):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''INSERT INTO comments (confession_id, username, avatar, text, time_posted)
+        VALUES (?, ?, ?, ?, ?)''', (
+        confession_id, comment.get('username'), comment.get('avatar'), comment.get('text'), comment.get('time_posted')
+    ))
+    conn.commit()
+    conn.close()
+
+def db_get_comments(confession_id):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('SELECT * FROM comments WHERE confession_id = ? ORDER BY id ASC', (confession_id,))
+    comments = c.fetchall()
+    result = []
+    for com in comments:
+        result.append({
+            'username': com['username'],
+            'avatar': com['avatar'],
+            'text': com['text'],
+            'time_posted': com['time_posted']
+        })
+    conn.close()
+    return result
+
+def db_like_confession(post_id):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('UPDATE confessions SET likes = likes + 1 WHERE id = ?', (post_id,))
+    conn.commit()
+    conn.close()
+
+def db_heart_confession(post_id):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('UPDATE confessions SET hearts = hearts + 1 WHERE id = ?', (post_id,))
+    conn.commit()
+    conn.close()
 
 # Anonymous username generator
 ADJECTIVES = [
@@ -613,30 +841,19 @@ def add_comment(post_id):
     comment_text = request.form.get('comment')
     if not comment_text:
         return redirect(url_for('home'))
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-    for confession in confessions:
-        if confession.get('id') == post_id:
-            # Use confession's anonymous username and avatar for comments
-            anon_username = generate_anonymous_username()
-            from datetime import datetime
-            import locale
-            locale.setlocale(locale.LC_TIME, '')
-            now = datetime.now()
-            time_posted = now.strftime('%B %d, %Y, %I:%M %p')
-            comment = {
-                'username': anon_username,
-                'text': comment_text,
-                'time_posted': time_posted
-            }
-            if 'comments' not in confession or not isinstance(confession['comments'], list):
-                confession['comments'] = []
-            confession['comments'].append(comment)
-            break
-    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(confessions, f, indent=2)
+    anon_username = generate_anonymous_username()
+    from datetime import datetime
+    import locale
+    locale.setlocale(locale.LC_TIME, '')
+    now = datetime.now()
+    time_posted = now.strftime('%B %d, %Y, %I:%M %p')
+    comment = {
+        'username': anon_username,
+        'text': comment_text,
+        'avatar': '',
+        'time_posted': time_posted
+    }
+    db_add_comment(post_id, comment)
     return redirect(url_for('confessions_page'))
 
 @app.route('/confessions')
@@ -644,18 +861,14 @@ def confessions_page():
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    confessions = load_confessions()
+    confessions = db_get_confessions()
     follows = load_follows()
     # Always show newest first, no filtering
-    sorted_confessions = list(reversed(confessions))
-    # Compute hidden comments for this user
+    sorted_confessions = confessions
     hidden_comments = get_hidden_comments(username)
-    # Notification: check for unread messages
     dms = load_dms()
     has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
-    # Reset follow status logic for confessions
     follow_status_map = {}
-    # Build sets for accepted and pending users only
     accepted_users = set()
     pending_users = set()
     for f in follows:
@@ -665,7 +878,6 @@ def confessions_page():
         else:
             pending_users.add(f.get('follower'))
             pending_users.add(f.get('followed'))
-    # For each confession, assign status based on real_user
     for confession in sorted_confessions:
         real_user = confession.get('user')
         if real_user == username:
@@ -677,7 +889,6 @@ def confessions_page():
         else:
             status = None
         follow_status_map[confession.get('username')] = status
-    # Also pass pending_requests for inbox icon
     pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
     return render_template(
         'confessions.html',
@@ -748,16 +959,7 @@ def post_confession():
 def like_confession(post_id):
     if 'user' not in session:
         return redirect(url_for('index'))
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-    for confession in confessions:
-        if confession.get('id') == post_id:
-            confession['likes'] = confession.get('likes', 0) + 1
-            break
-    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(confessions, f, indent=2)
+    db_like_confession(post_id)
     return redirect(url_for('confessions_page'))
 
 # Heart (love) a confession
@@ -765,16 +967,7 @@ def like_confession(post_id):
 def heart_confession(post_id):
     if 'user' not in session:
         return redirect(url_for('index'))
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-    for confession in confessions:
-        if confession.get('id') == post_id:
-            confession['hearts'] = confession.get('hearts', 0) + 1
-            break
-    with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-        json.dump(confessions, f, indent=2)
+    db_heart_confession(post_id)
     return redirect(url_for('confessions_page'))
 @app.route('/edit/<filename>', methods=['GET', 'POST'])
 def edit_file(filename):
@@ -887,23 +1080,9 @@ if __name__ == '__main__':
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])
 
-    # Ensure confessions.json exists
-    if not os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-            json.dump([], f)
+    # Initialize SQLite database tables
+    init_db()
 
-    # Ensure users.json exists
-    if not os.path.exists(USERS_FILE):
-        with open(USERS_FILE, 'w', encoding='utf-8') as f:
-            json.dump({}, f)
-
-    # Reset DM and follow data files for a clean start
-    DM_FILE = 'dms.json'
-    FOLLOWS_FILE = 'follows.json'
-    with open(DM_FILE, 'w', encoding='utf-8') as f:
-        json.dump([], f)
-    with open(FOLLOWS_FILE, 'w', encoding='utf-8') as f:
-        json.dump([], f)
     socketio.run(app, host='127.0.0.1', port=5000, debug=True)
 
 

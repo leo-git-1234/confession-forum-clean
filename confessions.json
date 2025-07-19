@@ -240,7 +240,7 @@
         "time_posted": "July 17, 2025, 02:31 PM"
       }
     ],
-    "likes": 0,
+    "likes": 1,
     "hearts": 0,
     "notifications": [],
     "time_posted": "July 17, 2025, 01:57 AM"
@@ -258,10 +258,20 @@
         "username": "Invisible Eagle",
         "text": "dfggdfgd",
         "time_posted": "July 17, 2025, 03:00 PM"
+      },
+      {
+        "username": "Mysterious Fox",
+        "text": "dfsfg",
+        "time_posted": "July 19, 2025, 07:47 PM"
+      },
+      {
+        "username": "Gentle Lion",
+        "text": "sgdsdg",
+        "time_posted": "July 19, 2025, 07:48 PM"
       }
     ],
-    "likes": 2,
-    "hearts": 1,
+    "likes": 3,
+    "hearts": 2,
     "notifications": [],
     "time_posted": "July 17, 2025, 02:11 PM"
   }
