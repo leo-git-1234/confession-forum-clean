@@ -922,7 +922,6 @@ def post_confession():
                     file.save(filepath)
                     file_links.append(filename)
             post_id = uuid.uuid4().hex
-            confessions = load_confessions()
             anon_username = generate_anonymous_username()
             from datetime import datetime
             import locale
@@ -937,14 +936,11 @@ def post_confession():
                 'description': description,
                 'text': confession,
                 'files': file_links,
-                'comments': [],
                 'likes': 0,
                 'hearts': 0,
-                'notifications': [],
                 'time_posted': time_posted
             }
-            confessions.append(confession_obj)
-            save_confessions(confessions)
+            db_add_confession(confession_obj)
             flash('Confession submitted!')
             return redirect(url_for('confessions_page'))
     # Pass inbox notification context
@@ -999,10 +995,7 @@ def my_confessions():
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
+    confessions = db_get_confessions()
     user_confessions = [c for c in confessions if c.get('user') == username]
     # Pass inbox notification context
     follows = load_follows()
@@ -1017,10 +1010,7 @@ def edit_confession(post_id):
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
+    confessions = db_get_confessions()
     confession = next((c for c in confessions if c.get('id') == post_id and c.get('user') == username), None)
     if not confession:
         flash('Confession not found or you do not have permission to edit it.')
@@ -1048,8 +1038,14 @@ def edit_confession(post_id):
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
                 confession['files'].append(filename)
-        with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(confessions, f, indent=2)
+        # Update confession in DB
+        conn = get_db()
+        c = conn.cursor()
+        c.execute('''UPDATE confessions SET title=?, description=?, text=?, files=? WHERE id=? AND user=?''', (
+            confession['title'], confession['description'], confession['text'], json.dumps(confession['files']), post_id, username
+        ))
+        conn.commit()
+        conn.close()
         flash('Confession updated!')
         return redirect(url_for('my_confessions'))
     return render_template('edit_confession.html', confession=confession, user_name=username)
@@ -1060,17 +1056,15 @@ def delete_confession(post_id):
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    confessions = []
-    if os.path.exists(CONFESSIONS_FILE):
-        with open(CONFESSIONS_FILE, 'r', encoding='utf-8') as f:
-            confessions = json.load(f)
-    new_confessions = [c for c in confessions if not (c.get('id') == post_id and c.get('user') == username)]
-    if len(new_confessions) == len(confessions):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('DELETE FROM confessions WHERE id=? AND user=?', (post_id, username))
+    if c.rowcount == 0:
         flash('Confession not found or you do not have permission to delete it.')
     else:
-        with open(CONFESSIONS_FILE, 'w', encoding='utf-8') as f:
-            json.dump(new_confessions, f, indent=2)
+        conn.commit()
         flash('Confession deleted!')
+    conn.close()
     return redirect(url_for('my_confessions'))
 
 
@@ -1083,6 +1077,6 @@ if __name__ == '__main__':
     # Initialize SQLite database tables
     init_db()
 
-    socketio.run(app, host='127.0.0.1', port=5000, debug=True)
+    socketio.run(app, host='127.0.0.1', port=5000, debug=False)
 
 

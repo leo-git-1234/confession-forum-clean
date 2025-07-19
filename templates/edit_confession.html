@@ -1,7 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Edit Confession</h2>
-<form method="POST" enctype="multipart/form-data">
+<div class="container" style="margin-top:40px; margin-bottom:40px;">
+    <h2>Edit Confession</h2>
+    <form method="POST" enctype="multipart/form-data">
     <label for="title" style="display:block;text-align:left;margin-bottom:6px;font-size:1rem;">Title:</label>
     <input type="text" id="title" name="title" value="{{ confession.title }}" required style="width:100%;padding:10px;border-radius:6px;border:1px solid #ccc;box-sizing:border-box;font-size:1rem;margin-bottom:12px;">
 
@@ -40,4 +41,5 @@
         }
     </style>
 </form>
+    </div>
 {% endblock %}

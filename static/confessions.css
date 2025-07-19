@@ -1,3 +1,32 @@
+/* Prevent scrolling into a blank/black section at the bottom of the confessions page */
+body, html {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background: #f7f7f7;
+    overflow-x: hidden;
+}
+
+.confessions-container {
+    min-height: 0;
+    padding-bottom: 0;
+}
+
+/* Remove any extra space at the bottom */
+#footer, .footer {
+    display: none !important;
+}
+
+/* Prevent extra space below the last confession */
+.confession-card:last-child {
+    margin-bottom: 0 !important;
+}
+
+/* If you have a main-content-wrapper, ensure it doesn't force extra height */
+.main-content-wrapper {
+    min-height: unset !important;
+    padding-bottom: 0 !important;
+}
 /* Improved card-based layout, color theme for like/heart buttons, avatar fallback, and pagination support. */
 body {
     background: #f5f6fa;
