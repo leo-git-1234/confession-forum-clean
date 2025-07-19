@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "sender": "leoliu",
+    "recipient": "confessionadmin",
+    "timestamp": "July 19, 2025, 11:03 PM",
+    "text": "",
+    "read": true,
+    "system": true
+  },
+  {
+    "sender": "confessionadmin",
+    "recipient": "leoliu",
+    "timestamp": "July 19, 2025, 11:03 PM",
+    "text": "",
+    "read": true,
+    "system": true
+  },
+  {
+    "sender": "leoliu",
+    "recipient": "confessionadmin",
+    "timestamp": "July 19, 2025, 11:03 PM",
+    "text": "hi",
+    "files": [],
+    "read": true
+  },
+  {
+    "sender": "confessionadmin",
+    "recipient": "leoliu",
+    "timestamp": "July 19, 2025, 11:03 PM",
+    "text": "hi",
+    "files": [],
+    "read": false
+  }
+]

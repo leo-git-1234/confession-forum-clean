@@ -303,7 +303,7 @@ def follow_user(anon_username):
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    confessions = load_confessions()
+    confessions = db_get_confessions()
     real_user = None
     for confession in confessions:
         if confession.get('username') == anon_username:
@@ -318,11 +318,18 @@ def follow_user(anon_username):
         flash("You can't follow yourself.")
         return redirect(url_for('confessions_page'))
     print(f"[DEBUG] Follow request received: follower={username}, followed={real_user} (anon={anon_username})")
-    follows = load_follows()
+    follows = db_get_follows()
     # Remove any previous requests for this user/real_user/anon_username
-    follows = [f for f in follows if not (f.get('follower') == username and f.get('followed') == real_user and f.get('anon') == anon_username)]
+    for f in follows:
+        if f.get('follower') == username and f.get('followed') == real_user and f.get('anon') == anon_username:
+            # Remove from DB
+            conn = get_db()
+            c = conn.cursor()
+            c.execute('DELETE FROM follows WHERE follower=? AND followed=? AND anon=?', (username, real_user, anon_username))
+            conn.commit()
+            conn.close()
     # Check if an accepted follow already exists (shouldn't, but just in case)
-    accepted_exists = any(f.get('follower') == username and f.get('followed') == real_user and f.get('anon') == anon_username and f.get('accepted') for f in follows)
+    accepted_exists = any(f.get('follower') == username and f.get('followed') == real_user and f.get('anon') == anon_username and f.get('accepted') for f in db_get_follows())
     # Get persistent anon_map for sender
     anon_map_file = 'anon_map.json'
     if os.path.exists(anon_map_file):
@@ -332,8 +339,7 @@ def follow_user(anon_username):
         anon_map = {}
     sender_anon = anon_map.get(username, anon_username)
     if not accepted_exists:
-        follows.append({'follower': username, 'followed': real_user, 'anon': anon_username, 'accepted': False})
-        save_follows(follows)
+        db_add_follow({'follower': username, 'followed': real_user, 'anon': anon_username, 'accepted': False})
         flash('Follow request sent!')
         # Emit real-time event to followed user, include sender's anonymous username
         socketio.emit('follow_request', {'follower': username, 'anon': anon_username, 'follower_anon': sender_anon}, room=real_user)
@@ -347,15 +353,19 @@ def accept_follow(follower, anon_username):
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    follows = load_follows()
+    follows = db_get_follows()
     updated = False
     for f in follows:
         if f.get('follower') == follower and f.get('followed') == username and f.get('anon') == anon_username and not f.get('accepted'):
-            f['accepted'] = True
+            # Update in DB
+            conn = get_db()
+            c = conn.cursor()
+            c.execute('UPDATE follows SET accepted=1 WHERE follower=? AND followed=? AND anon=?', (follower, username, anon_username))
+            conn.commit()
+            conn.close()
             updated = True
             break
     if updated:
-        save_follows(follows)
         flash('Follow request accepted!')
         # Automatically create a DM conversation entry so chat appears in inbox for both users
         dms = load_dms()
@@ -379,10 +389,12 @@ def decline_follow(follower, anon_username):
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    follows = load_follows()
-    # Remove the pending follow request for this anon_username
-    new_follows = [f for f in follows if not (f.get('follower') == follower and f.get('followed') == username and not f.get('accepted') and f.get('anon') == anon_username)]
-    save_follows(new_follows)
+    # Remove the pending follow request for this anon_username in DB
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('DELETE FROM follows WHERE follower=? AND followed=? AND accepted=0 AND anon=?', (follower, username, anon_username))
+    conn.commit()
+    conn.close()
     flash('Follow request declined.')
     # Emit real-time event to follower
     socketio.emit('follow_declined', {'followed': username, 'anon': anon_username}, room=follower)
@@ -393,7 +405,7 @@ def start_dm(anon_username):
     if 'user' not in session:
         return redirect(url_for('index'))
     username = session['user']['username']
-    follows = load_follows()
+    follows = db_get_follows()
     # Only allow DM if follow is accepted
     if any(f for f in follows if f['follower'] == username and f['followed'] == anon_username and f['accepted']):
         return redirect(url_for('chat', sender=username, recipient=anon_username))
@@ -406,7 +418,7 @@ def inbox():
         return redirect(url_for('index'))
     username = session['user']['username']
     dms = load_dms()
-    follows = load_follows()
+    follows = db_get_follows()
     # Reset and unify inbox tab logic
     # Pending follow requests: where user is the target and not accepted
     # Use persistent anon_map for all users
@@ -862,7 +874,7 @@ def confessions_page():
         return redirect(url_for('index'))
     username = session['user']['username']
     confessions = db_get_confessions()
-    follows = load_follows()
+    follows = db_get_follows()
     # Always show newest first, no filtering
     sorted_confessions = confessions
     hidden_comments = get_hidden_comments(username)
@@ -888,7 +900,7 @@ def confessions_page():
             status = 'pending'
         else:
             status = None
-        follow_status_map[confession.get('username')] = status
+        follow_status_map[real_user] = status
     pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
     return render_template(
         'confessions.html',
@@ -944,7 +956,7 @@ def post_confession():
             flash('Confession submitted!')
             return redirect(url_for('confessions_page'))
     # Pass inbox notification context
-    follows = load_follows()
+    follows = db_get_follows()
     dms = load_dms()
     has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
     pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
@@ -998,7 +1010,7 @@ def my_confessions():
     confessions = db_get_confessions()
     user_confessions = [c for c in confessions if c.get('user') == username]
     # Pass inbox notification context
-    follows = load_follows()
+    follows = db_get_follows()
     dms = load_dms()
     has_new_messages = any(dm for dm in dms if dm.get('recipient') == username and not dm.get('read'))
     pending_requests = [f for f in follows if f.get('followed') == username and not f.get('accepted')]
