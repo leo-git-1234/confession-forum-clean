@@ -1,0 +1,8 @@
+{# base.html or wherever your navigation bar is rendered #}
+<a href="{{ url_for('inbox') }}">
+    Messages
+    {% if has_new_messages %}
+        <span class="badge bg-danger">New</span>
+    {% endif %}
+</a>
+{# ...existing code for navigation... #}

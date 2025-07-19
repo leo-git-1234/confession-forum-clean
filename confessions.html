@@ -1,0 +1,12 @@
+{# ...existing code for confession display... #}
+{% set status = follow_status_map.get(confession.username) %}
+{% if status == 'accepted' %}
+    <button disabled class="btn btn-success">Following</button>
+{% elif status == 'pending' %}
+    <button disabled class="btn btn-warning">Pending</button>
+{% else %}
+    <form method="POST" action="{{ url_for('follow_user', anon_username=confession.username) }}">
+        <button type="submit" class="btn btn-primary">Follow</button>
+    </form>
+{% endif %}
+{# ...existing code... #}

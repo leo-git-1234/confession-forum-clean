@@ -1,63 +1,85 @@
 {% extends "base.html" %}
+
 {% block content %}
-<h2>Chat with {{ recipient }}</h2>
-<div style="margin-bottom:10px;">
-    {% if active %}
-        <span style="color:green;font-weight:bold;">● Active now</span>
-    {% elif last_seen %}
-        <span style="color:#888;">Last active: {{ last_seen }}</span>
-    {% else %}
-        <span style="color:#888;">No activity info</span>
-    {% endif %}
+<link rel="stylesheet" href="{{ url_for('static', filename='chat_instagram.css') }}">
+<div class="chat-header">
+    <a href="{{ url_for('inbox') }}" class="back-btn">&#8592; Back to Inbox</a>
+    <span class="chat-title">Chat with {{ recipient }}</span>
+    <span class="chat-status">
+        {% if active %}
+            <span style="color:green;font-weight:bold;">● Active now</span>
+        {% elif last_seen %}
+            <span style="color:#888;">Last active: {{ last_seen }}</span>
+        {% else %}
+            <span style="color:#888;">No activity info</span>
+        {% endif %}
+    </span>
 </div>
-<div class="chat-window" style="max-width:600px;margin:auto;background:#f9f9f9;padding:20px;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.07);">
-    <style>
-        @media (max-width: 700px) {
-            .chat-window {
-                max-width: 98vw !important;
-                padding: 8px !important;
-            }
-            button, input {
-                font-size: 0.95rem !important;
-                padding: 10px 0 !important;
-            }
-        }
-        @media (max-width: 480px) {
-            .chat-window {
-                padding: 4px !important;
-            }
-            button, input {
-                font-size: 0.92rem !important;
-                padding: 8px 0 !important;
-            }
-        }
-    </style>
+<div style="margin-bottom:12px;font-size:1.1em;font-weight:500;color:#007bff;">Welcome, {{ user_name }}</div>
+<div class="chat-window-instagram">
     {% for msg in convo %}
-        <div style="margin-bottom:12px;">
-            {% if msg.sender == user_name %}
-                <span style="font-weight:bold;color:#007bff;">{{ msg.sender }}</span>
-            {% else %}
-                <span style="font-weight:bold;color:#333;">{{ msg.sender }}</span>
-            {% endif %}
-            <span style="font-size:0.9em;color:#888;">{{ msg.timestamp }}</span>
-            <div style="margin-top:4px;">{{ msg.text }}</div>
-            {% if msg.blocked %}<span style="color:red;font-size:0.9em;">Blocked</span>{% endif %}
-            {% if msg.reported %}<span style="color:orange;font-size:0.9em;">Reported</span>{% endif %}
+        <div class="chat-bubble {% if msg.sender == 'You' %}me{% else %}them{% endif %}">
+            <div class="bubble-content">
+                {{ msg.text }}
+                {% if msg.files %}
+                    <div class="chat-files">
+                        {% for file in msg.files %}
+                            {% set ext = file.split('.')[-1].lower() %}
+                            {% if ext in ['png','jpg','jpeg','gif'] %}
+                                <img src="{{ url_for('uploaded_file', filename=file) }}" alt="Image" style="max-width:180px;max-height:180px;margin:6px 0;border-radius:8px;">
+                            {% else %}
+                                <a href="{{ url_for('uploaded_file', filename=file) }}" target="_blank" style="display:block;margin:6px 0;color:#007bff;">Attachment</a>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="bubble-meta">
+                <span class="bubble-sender">{% if msg.sender == 'You' %}You{% else %}{{ msg.sender }}{% endif %}</span>
+                <span class="bubble-time">{{ msg.timestamp }}</span>
+                {% if msg.blocked %}<span class="bubble-blocked">Blocked</span>{% endif %}
+                {% if msg.reported %}<span class="bubble-reported">Reported</span>{% endif %}
+            </div>
         </div>
+        <div class="clearfix"></div>
     {% endfor %}
     {% if blocked %}
-        <div style="color:red;font-weight:bold;">You have blocked this user.</div>
+        <div class="chat-blocked">You have blocked this user.</div>
     {% elif reported %}
-        <div style="color:orange;font-weight:bold;">You have reported this user.</div>
+        <div class="chat-reported">You have reported this user.</div>
     {% else %}
-        <form method="post" style="margin-top:20px;display:flex;gap:10px;">
-            <input type="text" name="message" placeholder="Type your message..." style="flex:1;padding:10px;border-radius:6px;border:1px solid #ccc;" required>
-            <button type="submit">Send</button>
+        <form method="post" class="chat-form" enctype="multipart/form-data" style="display:flex;flex-direction:column;gap:8px;">
+            <div style="display:flex;flex-wrap:wrap;gap:8px;width:100%;align-items:flex-start;">
+                <input type="text" name="message" placeholder="Type your message..." class="chat-input" style="flex:1;min-width:120px;word-break:break-word;white-space:pre-wrap;">
+                <button type="submit" class="chat-send" style="min-width:80px;">Send</button>
+            </div>
+            <input type="file" name="files" multiple style="margin-top:0;width:100%;max-width:100%;box-sizing:border-box;">
+            <style>
+            @media (max-width: 600px) {
+                .chat-form > div {
+                    flex-direction: column !important;
+                    gap: 8px !important;
+                }
+                .chat-input {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                }
+                .chat-send {
+                    width: 100% !important;
+                    min-width: 0 !important;
+                }
+                input[type="file"] {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                }
+            }
+            </style>
         </form>
-        <form method="post" style="margin-top:10px;display:inline;">
-            <button type="submit" name="block" value="1" style="background:#dc3545;color:#fff;">Block</button>
-            <button type="submit" name="report" value="1" style="background:#ffc107;color:#333;">Report</button>
+        <form method="post" class="chat-actions">
+            <button type="submit" name="block" value="1" class="chat-block">Block</button>
+            <button type="submit" name="report" value="1" class="chat-report">Report</button>
         </form>
     {% endif %}
 </div>
+{% include 'socketio_snippet.html' %}
 {% endblock %}

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 <h2 style="margin-bottom:30px;">My Confessions</h2>
+{# Notification badge logic for DM icon is handled in base.html via has_new_messages and pending_requests #}
 {% if confessions %}
     <div class="confessions-container" style="display: flex; flex-direction: column; gap: 24px; max-width: 600px; margin: 0 auto; background: none;">
     {% for confession in confessions|reverse %}

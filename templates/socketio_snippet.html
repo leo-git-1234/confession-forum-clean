@@ -1,0 +1,31 @@
+<!-- Add this to your base.html or confessions.html, just before </body> -->
+<script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
+<script>
+  // Connect to Socket.IO server
+  var socket = io();
+  // Join room for current user (username is available in user_name variable from Flask)
+  {% if user_name %}
+    socket.emit('join', {room: '{{ user_name }}'});
+  {% endif %}
+
+  // Listen for follow request
+  socket.on('follow_request', function(data) {
+    alert('New follow request from ' + data.anon);
+    location.reload();
+  });
+
+  socket.on('follow_accepted', function(data) {
+    alert('Your follow request to ' + data.anon + ' was accepted!');
+    location.reload();
+  });
+
+  socket.on('follow_declined', function(data) {
+    alert('Your follow request to ' + data.anon + ' was declined.');
+    location.reload();
+  });
+
+  socket.on('new_message', function(data) {
+    alert('New message from ' + data.sender + ': ' + data.text);
+    location.reload();
+  });
+</script>

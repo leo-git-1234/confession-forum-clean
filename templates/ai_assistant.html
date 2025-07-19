@@ -1,27 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>AI Assistant Chat</h2>
-<div id="chat-box" style="background:#f4f8fb;padding:20px;border-radius:10px;min-height:200px;max-height:400px;overflow-y:auto;margin-bottom:20px;">
-    <style>
-        @media (max-width: 700px) {
-            #chat-box {
-                padding: 8px !important;
-            }
-            button, input {
-                font-size: 0.95rem !important;
-                padding: 10px 0 !important;
-            }
-        }
-        @media (max-width: 480px) {
-            #chat-box {
-                padding: 4px !important;
-            }
-            button, input {
-                font-size: 0.92rem !important;
-                padding: 8px 0 !important;
-            }
-        }
-    </style>
+<h2 style="text-align:center;">AI Assistant Chat</h2>
+<div class="container" style="max-width:600px;margin:40px auto;background:#fff;padding:30px;border-radius:12px;box-shadow:0 4px 16px rgba(0,0,0,0.10);">
     {% for message in chat_history %}
         <div style="margin-bottom:10px;">
             <b style="color:{{ 'green' if message['role']=='user' else 'blue' }};">
@@ -30,9 +10,9 @@
             <span>{{ message['text']|e }}</span>
         </div>
     {% endfor %}
+    <form method="POST" style="display:flex;gap:10px;">
+        <input type="text" name="user_message" placeholder="Type your message..." style="flex:1;" required>
+        <button type="submit">Send</button>
+    </form>
 </div>
-<form method="POST" style="display:flex;gap:10px;">
-    <input type="text" name="user_message" placeholder="Type your message..." style="flex:1;" required>
-    <button type="submit">Send</button>
-</form>
 {% endblock %}
